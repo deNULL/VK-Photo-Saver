@@ -75,15 +75,16 @@ function attach(blob) {\\n\
   var box = showBox(\\'al_photos.php\\', { act: \\'choose_photo\\', max_files: 10 }, {stat: [\\'photos.js\\', \\'upload.js\\'], onDone: function() {\\n\
     if (!box) return;\\n\
     var __FormData = window.FormData;\\n\
+    var fileName = \\'photo\\'+Math.random()+\\'.png\\';\\n\
     window.FormData = function() {\\n\
       var obj = new __FormData();\\n\
       var __append = obj.append;\\n\
       obj.append = function(name, file) {\\n\
-        return __append.call(this, name, file, \\'photo.png\\');\\n\
+        return __append.call(this, name, file, fileName);\\n\
       };\\n\
       return obj;\\n\
     };\\n\
-    blob.fileName = blob.name = \\'photo.png\\';\\n\
+    blob.fileName = blob.name = fileName;\\n\
     Upload.onFileApiSend(cur.uplId, [ blob ]);\\n\
     window.FormData = __FormData;\\n\
   }});\\n\
