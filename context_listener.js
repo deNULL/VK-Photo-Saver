@@ -11,14 +11,15 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   		el = el.parentNode;
   	}
   	if (!el) {
-  		return;
-  	}
-  	var photoset = el.className == 'photoset';
-  	var imgs = el.querySelectorAll(photoset ? 'a.photoset_photo' : 'img');
-  	for (var i = 0, l = imgs.length; i<l; i++) {
-  		var prop = photoset ? 'href' : 'src';
-  		if (imgs[i][prop]) sources.push(imgs[i][prop]);
-  	}
+  		sources = [last_target.src];
+  	} else {
+    	var photoset = el.className == 'photoset';
+    	var imgs = el.querySelectorAll(photoset ? 'a.photoset_photo' : 'img');
+    	for (var i = 0, l = imgs.length; i<l; i++) {
+    		var prop = photoset ? 'href' : 'src';
+    		if (imgs[i][prop]) sources.push(imgs[i][prop]);
+    	}
+    }
   	sendResponse({sources:sources});
   }
 });

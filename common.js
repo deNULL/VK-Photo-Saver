@@ -71,11 +71,15 @@ function attach(urls, post) {
       //file: 'attach.js'
       code: "var e = document.createElement('script');e.innerHTML = '\\n\
 (function(window) {\\n\
-function attach(blob) {\\n\
-  var box = showBox(\\'al_photos.php\\', { act: \\'choose_photo\\', max_files: 10 }, {stat: [\\'photos.js\\', \\'upload.js\\'], onDone: function() {\\n\
+function attach(blob, src) {\\n\
+  var ext = src.match(/\\.([^.]+)$/)[1], isDoc = (ext == \\'gif\\');\\n\
+  var url = isDoc ? \\'docs.php\\' : \\'al_photos.php\\';\\n\
+  var args = isDoc ? { act: \\'a_choose_doc_box\\', al: 1 } : { act: \\'choose_photo\\', max_files: 10 };\\n\
+  var scripts = isDoc ? [\\'upload.js\\'] : [\\'photos.js\\', \\'upload.js\\'];\\n\
+  var box = showBox(url, args, {stat: scripts, onDone: function() {\\n\
     if (!box) return;\\n\
     var __FormData = window.FormData;\\n\
-    var fileName = \\'photo\\'+Math.random()+\\'.png\\';\\n\
+    var fileName = \\'file\\'+Math.random()+\\'.\\'+ext;\\n\
     window.FormData = function() {\\n\
       var obj = new __FormData();\\n\
       var __append = obj.append;\\n\
@@ -117,7 +121,7 @@ window.addEventListener(\\'message\\', function(event) {\\n\
         cur.addMedia[id].showMediaProgress.apply(this,arguments);\\n\
       };\\n\
       cur.attachCount = cur.addMedia[id].attachCount;\\n\
-      attach(new Blob([ab], { type: mime }));\\n\
+      attach(new Blob([ab], { type: mime }), event.data.src);\\n\
     }, 100);\\n\
   }\\n\
 }, false);\\n\
@@ -162,7 +166,8 @@ function downloadTask(tabId, url, post) {
       reader.onload = function() {
         chrome.tabs.sendMessage(tabId, {
           message: 'attachDataUrl', 
-          url: reader.result, 
+          url: reader.result,
+          src: url,
           post: post 
         });
       }
