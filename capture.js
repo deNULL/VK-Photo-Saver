@@ -96,7 +96,7 @@ controls.onmousedown = function(e) {
 
 var quick_upload = ge('vkps_quick_upload');
 quick_upload.onclick = function(e) {
-  send('captureQuickUpload');
+  send('captureAlbum');
 }
 
 var attach_post = ge('vkps_attach_post');
@@ -115,6 +115,7 @@ attach_save.onclick = function(e) {
 }
 
 function send(msg) {
+  dismiss();
   chrome.runtime.sendMessage({
     message: msg,
     x: leftSide.clientWidth * devicePixelRatio,
@@ -122,7 +123,6 @@ function send(msg) {
     w: area.clientWidth * devicePixelRatio,
     h: area.clientHeight * devicePixelRatio
   });
-  dismiss();
 }
 
 var cancel = ge('vkps_cancel');

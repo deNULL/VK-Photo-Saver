@@ -1,4 +1,5 @@
 function ge(e) {return document.getElementById(e)};
+function isArray(obj) { return Object.prototype.toString.call(obj) === '[object Array]'; }
 function num(n,cs) {
   n = n % 100;
   if ((n % 10 == 0) || (n % 10 > 4) || (n > 4 && n < 21)) {
@@ -13,57 +14,71 @@ function num(n,cs) {
 
 var month = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-var access_token = localStorage['access_token'];
+/*
+var access_token = localStorage['access_token']; // TODO: move all options to 'opts'
 var quickUploadOwner = localStorage['qu_owner'] || 0;
 var quickUploadAlbum = localStorage['qu_album'] || 0;
 var quickUploadName = localStorage['qu_name'] || '...';
 var albums = {};
 var first_name = '', last_name = '', user_id = 0;
+*/
 
-function quickUpload(info, tab) {
-  if (!access_token) {
-    chrome.tabs.create({ url: 'options.html' });
-    return;
+var opts = {};
+function loadOptions(defaults) {
+  for (var key in defaults) {
+    opts[key] = localStorage[key] ? JSON.parse(localStorage[key]) : defaults[key];
   }
-
-  var blob = false;
-  var upload_url = false;
-
-  var params = { album_id: quickUploadAlbum };
-  if (quickUploadOwner != 0) {
-    params.group_id = -quickUploadOwner;
+}
+function saveOptions(update, silent) {
+  if (update) {
+    for (var key in update) {
+      opts[key] = update[key];
+      localStorage[key] = JSON.stringify(update[key]);
+    }
   }
+  if (!silent) {
+    chrome.runtime.sendMessage({ message: 'updateOptions', update: update });
+  }
+}
+loadOptions({
+  accessToken: false,
+  firstName: false,
+  lastName: false,
+  userID: false,
 
-  api('photos.getUploadServer', params, function(data) {
-    if (data.response) {
-      upload_url = data.response.upload_url;
-      if (blob && upload_url) {
-        upload(blob, upload_url, info.srcUrl);
+  showAlbum: true,
+  showMessage: true,
+  showPost: true,
+  showFullPost: true,
+
+  albums: [],
+  afterUpload: false,
+});
+
+// Old options, to be removed
+opts['accessToken'] = opts['accessToken'] || localStorage['access_token'];
+if (opts['albums'].length == 0 && localStorage['qu_owner'] && localStorage['qu_album']) {
+  opts['albums'] = [{
+    group: parseInt(localStorage['qu_owner']) ? {
+      id: parseInt(localStorage['qu_owner'])
+    } : false,
+    album: {
+      id: parseInt(localStorage['qu_album']),
+      title: localStorage['qu_name']
+    }
+  }];
+  if (opts['albums'][0].group) {
+    api('groups.getById', { group_id: opts['albums'][0].group.id }, function(data) {
+      if (data.response && data.response[0]) {
+        opts['albums'][0].group = data.response[0];
       }
-    }
-  });
-
-  download(info.srcUrl, function(b) {
-    blob = b;
-    if (blob && upload_url) {
-      upload(blob, upload_url, info.srcUrl);
-    }
-  });
+    });
+  }
 }
-
-function attachToPost(info, tab) {
-  attach([info.srcUrl], true);
+if (opts['albums'].length == 0) {
+  opts['albums'] = [{ group: false, album: [] }];
 }
-
-function attachTumblrToPost(info, tab) {
-  chrome.tabs.sendMessage(tab.id, {action: "find_sources"}, function(response) {
-    attach(response.sources, true);
-  });
-}
-
-function attachToMessage(info, tab) {
-  attach([info.srcUrl], false);
-}
+saveOptions();
 
 function attach(urls, post) {
   chrome.tabs.create({ url: post ? 'http://vk.com/feed?w=postbox' : 'http://vk.com/write' }, function(tab) {
@@ -139,9 +154,21 @@ window.addEventListener('message', function(event) {\n\
 "
     }, function() {
       var tasks = [];
-      for (var i=0,l=urls.length;i<l; i++) {
+      for (var i = 0, l = urls.length; i < l; i++) {
         var url = urls[i];
-        tasks.push(downloadTask(tab.id, url, post));
+        if (url.indexOf('data:') == 0) { // Data URL
+          tasks.push(function(onFinish) {
+            currentOnFinish = onFinish;
+            chrome.tabs.sendMessage(tab.id, {
+              message: 'attachDataUrl',
+              url: url,
+              src: 'screenshot.png',
+              post: post
+            });
+          });
+        } else {
+          tasks.push(downloadTask(tab.id, url, post));
+        }
       }
       executeTasks(tasks, 500);
     });
@@ -149,11 +176,13 @@ window.addEventListener('message', function(event) {\n\
 }
 
 var currentOnFinish;
-
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.message == 'attachDataUrlSuccess') {
     console.log('success');
     if (currentOnFinish) currentOnFinish();
+  } else
+  if (request.message == 'updateOptions') {
+    saveOptions(request.update, true);
   }
 });
 
@@ -165,10 +194,10 @@ function downloadTask(tabId, url, post) {
       console.log(url);
       reader.onload = function() {
         chrome.tabs.sendMessage(tabId, {
-          message: 'attachDataUrl', 
+          message: 'attachDataUrl',
           url: reader.result,
           src: url,
-          post: post 
+          post: post
         });
       }
       reader.readAsDataURL(blob);
@@ -203,7 +232,7 @@ function download(url, callback) {
   xhr.send();
 }
 
-function upload(blob, url, src) {
+function upload(group, album, blob, url, src) {
   var formData = new FormData();
   formData.append('file1', blob, 'file.jpg');
   var xhr = new XMLHttpRequest();
@@ -211,9 +240,9 @@ function upload(blob, url, src) {
     if (this.readyState == 4 && this.status == 200) {
       var res = (typeof this.response == 'string') ? JSON.parse(this.response) : this.response;
 
-      var params = { album_id: quickUploadAlbum };
-      if (quickUploadOwner != 0) {
-        params.group_id = -quickUploadOwner;
+      var params = { album_id: album.id };
+      if (group) {
+        params.group_id = group.id;
       }
       params.server = res.server;
       params.photos_list = res.photos_list;
@@ -226,7 +255,7 @@ function upload(blob, url, src) {
           var notification = window.webkitNotifications.createNotification(
             src,
             'Загрузка завершена',
-            'Изображение успешно загружено в альбом «' + quickUploadName + '». Щелкните, чтобы просмотреть.'
+            'Изображение успешно загружено в альбом «' + album.title + '». Щелкните, чтобы просмотреть.'
           );
 
           notification.onclick = function () {
@@ -244,30 +273,6 @@ function upload(blob, url, src) {
   xhr.open('POST', url);
   xhr.responseType = 'json';
   xhr.send(formData);
-}
-
-function startCapture() {
-  chrome.tabs.insertCSS({
-    file: 'styles.css'
-  });
-  chrome.tabs.executeScript({
-    file: 'capture.js'
-  });
-}
-
-function captureTab(windowId, crop, callback) {
-  chrome.tabs.captureVisibleTab(windowId, function(dataUrl) {
-    var fullSize = new Image();
-    fullSize.onload = function() {
-      var canvas = document.createElement('canvas');
-      canvas.width = crop.w;
-      canvas.height = crop.h;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(fullSize, -crop.x, -crop.y);
-      callback(canvasToBlob(canvas));
-    }
-    fullSize.src = dataUrl;
-  });
 }
 
 function canvasToBlob(canvas) {
@@ -293,31 +298,8 @@ function canvasToBlob(canvas) {
   };
 }
 
-function checkAccessToken() {
-  access_token = localStorage['access_token'];
-
-  if (is_options) {
-    ge('block_auth').style.display = access_token ? 'none' : 'block';
-    ge('block_logged').style.display = access_token ? 'block' : 'none';
-    ge('block_settings').style.display = access_token ? 'block' : 'none';
-
-    if (access_token) {
-      loadGroups(quickUploadAlbum == 0);
-
-      api('users.get', {}, function(data) {
-        first_name = localStorage['first_name'] = data.response[0].first_name;
-        last_name = localStorage['last_name'] = data.response[0].last_name;
-        user_id = localStorage['user_id'] = data.response[0].id;
-
-        ge('link_user').href = 'http://vk.com/id' + user_id;
-        ge('link_user').innerHTML = first_name + ' ' + last_name;
-      });
-    }
-  }
-}
-
 function api(method, params, callback) {
-  var arr = ['v=5.7', 'access_token=' + access_token];
+  var arr = ['v=5.7', 'access_token=' + opts.accessToken];
   for (var k in params) {
     arr.push(k + '=' + escape(params[k]));
   }
@@ -348,42 +330,4 @@ function api(method, params, callback) {
   xhr.responseType = 'json';
   xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
   xhr.send(arr.join('&'));
-}
-
-function performAuth() {
-  var redirect_uri = 'https://oauth.vk.com/blank.html';
-  var redirect_regex = /^https:\/\/oauth.vk.com\/blank.html#(.*)$/i;
-  chrome.windows.getCurrent(function(wnd) {
-    chrome.tabs.getCurrent(function(tab) {
-      chrome.windows.create({
-        url: 'https://oauth.vk.com/authorize?client_id=4139773&scope=photos,groups,offline&redirect_uri=' + redirect_uri + '&display=popup&v=5.7&response_type=token',
-        tabId: tab.id,
-        focused: true,
-        type: 'popup',
-        left: wnd.left + (wnd.width - 700) >> 1,
-        top: wnd.top + (wnd.height - 500) >> 1,
-        width: 700,
-        height: 500,
-      }, function(popup) {
-        chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-          var match;
-          if (tab.windowId == popup.id && changeInfo.url && (match = changeInfo.url.match(redirect_regex))) {
-            chrome.windows.remove(popup.id);
-
-            var params = match[1].split('&');
-            for (var i = 0; i < params.length; i++) {
-              var kv = params[i].split('=');
-              if (kv[0] == 'access_token') {
-                console.log('access_token: ', kv[1]);
-
-                localStorage['access_token'] = kv[1];
-                chrome.runtime.sendMessage({ message: 'setAccessToken', value: localStorage['access_token'] });
-                checkAccessToken();
-              }
-            }
-          }
-        });
-      });
-    });
-  });
 }

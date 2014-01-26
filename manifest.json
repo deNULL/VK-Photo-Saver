@@ -1,6 +1,6 @@
 {
   "name": "VK Photo Saver",
-  "version": "1.6",
+  "version": "1.7",
   "manifest_version": 2,
   "description": "Позволяет сохранять фотографии и скриншоты со сторонних сайтов в альбомы ВКонтакте.",
   "icons": {
@@ -24,7 +24,7 @@
   "content_scripts": [
     {
       "all_frames": true,
-      "matches": ["http://*.tumblr.com/*"],
+      "matches": ["*://*.tumblr.com/*"],
       "js": ["context_listener.js"]
     }
   ],

@@ -4,7 +4,7 @@ document.addEventListener('contextmenu', function(event){
 }, true);
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.action === 'find_sources') {
+  if (request.action === 'findSources') {
   	var sources = [];
   	var el = last_target;
   	while (el && el.className != 'post_media' && el.className != 'photoset') {
@@ -20,6 +20,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     		if (imgs[i][prop]) sources.push(imgs[i][prop]);
     	}
     }
-  	sendResponse({sources:sources});
+  	sendResponse({sources: sources});
   }
 });

@@ -211,24 +211,24 @@
       <p>Вы авторизованы как <a id='link_user' href='http://vk.com' target='_blank'></a> (<a id='link_logout' href='#'>выйти</a>)</p>
     </div>
     <div id='block_settings' style='display: none'>
-      <p>Отображать в меню:</p>
-      <div style='margin: 12px 0' class='checkbox on'><div></div><span>«Загрузить в альбом ...»</span></div>
-      <div style='clear: both; padding: 0 20px'>
+      <p>Отображать в контекстном меню изображений:</p>
+      <div style='margin: 12px 0' id='check_album' class='checkbox'><div></div><span>«Загрузить в альбом ...»</span></div>
+      <div style='clear: both; padding: 0 20px 4px 20px'>
         <p>Альбомы для быстрой загрузки:</p>
-        <div>
-          <select id='select_owner' style='width: 300px; margin-right: 10px'></select><select id='select_album' style='width: 300px; margin-right: 10px'></select><a href='#'>добавить</a>
-        </div>
+        <div id='block_albums'></div>
         <p>После загрузки:</p>
         <div>
-          <div style='margin-right: 16px' class='radiobtn fl on'><div></div><span>Ничего не делать</span></div>
-          <div style='margin-right: 16px' class='radiobtn fl'><div></div><span>Скопировать прямую ссылку на изображение</span></div>
-          <div style='margin-right: 16px' class='radiobtn fl'><div></div><span>Скопировать ссылку на страницу фото</span></div>
+          <div style='margin-right: 16px' id='radio_copy_none' class='radiobtn radio_copy fl'><div></div><span>Ничего не делать</span></div>
+          <div style='margin-right: 16px' id='radio_copy_src' class='radiobtn radio_copy fl'><div></div><span>Скопировать прямую ссылку на изображение</span></div>
+          <div style='margin-right: 16px' id='radio_copy_page' class='radiobtn radio_copy fl'><div></div><span>Скопировать ссылку на страницу фото</span></div>
         </div>
         <div style='clear: both'></div>
       </div>
-      <div style='margin: 12px 0' class='checkbox on'><div></div><span>«Прикрепить к новой записи...»</span></div>
+      <div style='margin: 12px 0' id='check_message' class='checkbox'><div></div><span>«Прикрепить к сообщению...»</span></div>
       <div style='clear: both'></div>
-      <div style='margin: 12px 0' class='checkbox on'><div></div><span>«Прикрепить к сообщению...»</span></div>
+      <div style='margin: 12px 0' id='check_post' class='checkbox'><div></div><span>«Прикрепить к новой записи...»</span></div>
+      <div style='clear: both'></div>
+      <div style='margin: 12px 0' id='check_full_post' class='checkbox'><div></div><span>«Прикрепить весь пост к новой записи...» (только для Tumblr)</span></div>
       <div style='clear: both'></div>
       <div style='text-align: center; margin-top: 16px'><div id='button_close' class='button_blue'><button>Закрыть</button></div></div>
     </div>
