@@ -14,6 +14,21 @@ var menuAttachPost = chrome.contextMenus.create({
   onclick: attachToPost,
   contexts: ['image']
 });
+
+var triggerAttachTumblrPost = function (enabled) {
+  if (!window.menuAttachTumblrPost && enabled) {
+    window.menuAttachTumblrPost = chrome.contextMenus.create({
+      parentId: menuRoot,
+      title: 'Прикрепить весь пост к новой записи...',
+      onclick: attachTumblrToPost,
+      contexts: ['image']
+    });
+  } else if (window.menuAttachTumblrPost && !enabled) {
+    chrome.contextMenus.remove(window.menuAttachTumblrPost);
+    window.menuAttachTumblrPost = 0;
+  }
+};
+
 var menuAttachMessage = chrome.contextMenus.create({
   parentId: menuRoot,
   title: 'Прикрепить к сообщению...',
@@ -76,3 +91,19 @@ chrome.runtime.onInstalled.addListener(function(details) {
 chrome.browserAction.onClicked.addListener(function(tab) {
   startCapture();
 });
+
+chrome.tabs.onActivated.addListener(function(info) {
+  chrome.tabs.get(info.tabId, function(tab){
+    updateTumblrMenu(tab.url);  
+  });
+});
+
+chrome.tabs.onUpdated.addListener(function(id,info,tab) {
+  updateTumblrMenu(tab.url);
+});
+
+var updateTumblrMenu = function(url) {
+  var a = document.createElement('a');
+  a.href = url;
+  triggerAttachTumblrPost(/tumblr\.com$/.test(a.hostname));
+}
