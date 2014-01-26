@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <script src='common.js'></script>
+  <title>VK Photo Saver</title>
+  <style>
+    body {
+      background-color: #eee;
+      overflow-x: hidden;
+      margin: 0;
+    }
+    body, select {
+      font-family: Lucida Grande, Arial, tahoma, verdana, sans-serif; font-size: 12px;
+    }
+    .content {
+      width: 800px;
+      height: 100%;
+      margin: auto;
+      padding: 1px 16px 16px 16px;
+      background-color: #fff;
+      box-shadow: 3px 3px 0px #ccc;
+    }
+    a {
+      text-decoration: none;
+    }
+    a:hover, a:active {
+      text-decoration: underline;
+    }
+    .clear_fix:after {
+      content: '.';
+      display: block;
+      height: 0;
+      clear: both;
+      visibility: hidden;
+    }
+    * html .clear_fix {
+      height: 1%;
+    }
+    .clear_fix {
+      display: block;
+    }
+    .button_blue,
+    .button_gray {
+      text-align: center;
+      display: inline-block;
+      *display: inline;
+      position: relative;
+      line-height: normal;
+      zoom: 1;
+    }
+    .box_controls .button_blue,
+    .box_controls .button_gray {
+      margin: 2px 5px;
+    }
+    .button_blue button,
+    .button_gray button {
+      -webkit-border-radius: 2px;
+      -khtml-border-radius: 2px;
+      -moz-border-radius: 2px;
+      border-radius: 2px;
+      border: 1px solid;
+      background: none;
+      font-size: 12px;
+      margin: 0px;
+      cursor: pointer;
+      white-space: nowrap;
+      outline: none;
+      padding: 6px 16px;
+      *padding: 5px 15px 3px;
+      font-family: tahoma, arial, verdana, sans-serif, Lucida Sans;
+      vertical-align: top;
+      overflow: visible;
+      line-height: normal;
+    }
+
+    .button_blue button {
+      border-top-color: #789ABF;
+      border-bottom-color: #5980A9;
+      border-left-color: #5980A9;
+      border-right-color: #5980A9;
+      color: #FFF;
+      text-shadow:0 1px 0 #45688E;
+      *border: 0;
+      background: url(/images/button_vk.png) #6181a6 repeat-x top;
+      background-position: 0px -16px;
+      *background-position: 0px -16px;
+    }
+    .button_blue button:hover,
+    .button_blue button.hover {
+      background-position: 0px -8px;
+    }
+    .button_blue button:active,
+    .button_blue button.active {
+      background: #5e80a5;
+      border: 1px solid #5e80a5;
+      position:relative;
+    }
+    .button_gray button {
+      border-top-color: #D3D3D3;
+      border-bottom-color: #AEAEAE;
+      border-left-color: #C7C7C7;
+      border-right-color: #C7C7C7;
+      color: #555;
+      text-shadow: 0 1px 0 #F6F6F6;
+      *border: 0;
+      background: #E9E9E9 url(/images/button_vk.png?1) repeat-x top;
+      background-position: 0px -59px;
+      cursor: default;
+    }
+    /*.button_gray button:hover,
+    .button_gray button.hover {
+      background-position: 0px -53px;
+      border-top-color: #D7D7D7;
+      border-bottom-color: #B7B7B7;
+      border-left-color: #CBCBCB;
+      border-right-color: #CBCBCB;
+    }*/
+
+    .fl {
+      float: left;
+    }
+    .fr {
+      float: right;
+    }
+
+    a {
+      color: #2B587A;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .checkbox {
+      cursor: pointer;
+      line-height: 1.27em;
+    }
+    .checkbox.disabled {
+      opacity: 0.5;
+      filter: alpha(opacity=50);
+    }
+    .checkbox div {
+      float: left;
+      width: 15px;
+      margin-right: 5px;
+      height: 14px;
+      margin-bottom: 2px;
+      background: url(/images/check.gif) 0px 0px no-repeat;
+    }
+    .checkbox:hover div {
+      background-position: 0px -28px;
+    }
+    .checkbox.disabled:hover div {
+      background-position: 0px 0px;
+    }
+    .checkbox.on div {
+      background-position: 0px -14px;
+    }
+    .checkbox.on:hover div {
+      background-position: 0px -42px;
+    }
+    .checkbox.disabled.on:hover div {
+      background-position: 0px -14px;
+    }
+    .radiobtn {
+      cursor: pointer;
+      line-height: 1.27em;
+    }
+    .radiobtn div {
+      float: left;
+      width: 15px;
+      margin-right: 5px;
+      height: 14px;
+      margin-bottom: 1px; /* Second line fix */
+      background: url(/images/radio.gif) 0px 0px no-repeat;
+    }
+    .radiobtn:hover div {
+      background-position: 0px -28px;
+    }
+    .radiobtn.disabled:hover div {
+      background-position: 0px 0px;
+    }
+    .radiobtn_hover div {
+      background-position: 0px -28px;
+    }
+    .radiobtn.on div {
+      background-position: 0px -14px;
+    }
+    .radiobtn.on:hover div {
+      background-position: 0px -42px;
+    }
+    .radiobtn.disabled.on:hover div {
+      background-position: 0px -14px;
+    }
+    .radiobtn.on.radiobtn_hover div {
+      background-position: 0px -42px;
+    }
+  </style>
+</head>
+<body>
+  <div class='content'>
+    <img class='fr' style='margin-top: 12px' src='icon-48.png'/>
+    <h2>Настройки расширения «VK Photo Saver»</h2>
+    <div id='block_auth'>
+      <p>Для начала работы с расширением необходимо разрешить ему доступ к вашим фотоальбомам на сайте ВКонтакте:</p>
+      <div style='text-align: center'><div id='button_auth' class='button_blue'><button>Разрешить доступ</button></div></div>
+    </div>
+    <div id='block_logged' style='display: none'>
+      <p>Вы авторизованы как <a id='link_user' href='http://vk.com' target='_blank'></a> (<a id='link_logout' href='#'>выйти</a>)</p>
+    </div>
+    <div id='block_settings' style='display: none'>
+      <p>Отображать в меню:</p>
+      <div style='margin: 12px 0' class='checkbox on'><div></div><span>«Загрузить в альбом ...»</span></div>
+      <div style='clear: both; padding: 0 20px'>
+        <p>Альбомы для быстрой загрузки:</p>
+        <div>
+          <select id='select_owner' style='width: 300px; margin-right: 10px'></select><select id='select_album' style='width: 300px; margin-right: 10px'></select><a href='#'>добавить</a>
+        </div>
+        <p>После загрузки:</p>
+        <div>
+          <div style='margin-right: 16px' class='radiobtn fl on'><div></div><span>Ничего не делать</span></div>
+          <div style='margin-right: 16px' class='radiobtn fl'><div></div><span>Скопировать прямую ссылку на изображение</span></div>
+          <div style='margin-right: 16px' class='radiobtn fl'><div></div><span>Скопировать ссылку на страницу фото</span></div>
+        </div>
+        <div style='clear: both'></div>
+      </div>
+      <div style='margin: 12px 0' class='checkbox on'><div></div><span>«Прикрепить к новой записи...»</span></div>
+      <div style='clear: both'></div>
+      <div style='margin: 12px 0' class='checkbox on'><div></div><span>«Прикрепить к сообщению...»</span></div>
+      <div style='clear: both'></div>
+      <div style='text-align: center; margin-top: 16px'><div id='button_close' class='button_blue'><button>Закрыть</button></div></div>
+    </div>
+  </div>
+<script src='options.js'></script>
+</body>
+</html>

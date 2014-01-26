@@ -1,0 +1,103 @@
+.vkps_button_blue,
+.vkps_button_gray {
+  text-align: center;
+  display: inline-block;
+  *display: inline;
+  position: relative;
+  line-height: normal;
+  zoom: 1;
+}
+.vkps_button_blue button,
+.vkps_button_gray button {
+  -webkit-border-radius: 2px;
+  -khtml-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+  border: 1px solid;
+  background: none;
+  font-size: 12px;
+  margin: 0px;
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+  padding: 6px 16px;
+  *padding: 5px 15px 3px;
+  font-family: tahoma, arial, verdana, sans-serif, Lucida Sans;
+  vertical-align: top;
+  overflow: visible;
+  line-height: normal;
+}
+
+.vkps_button_blue button {
+  border-top-color: #789ABF;
+  border-bottom-color: #5980A9;
+  border-left-color: #5980A9;
+  border-right-color: #5980A9;
+  color: #FFF;
+  text-shadow:0 1px 0 #45688E;
+  *border: 0;
+  background: url(http://vk.com/images/button_vk.png) #6181a6 repeat-x top;
+  background-position: 0px -16px;
+  *background-position: 0px -16px;
+}
+.vkps_button_blue button:hover,
+.vkps_button_blue button.hover {
+  background-position: 0px -8px;
+}
+.vkps_button_blue button:active,
+.vkps_button_blue button.active {
+  background: #5e80a5;
+  border: 1px solid #5e80a5;
+  position:relative;
+}
+.vkps_button_gray button {
+  border-top-color: #D3D3D3;
+  border-bottom-color: #AEAEAE;
+  border-left-color: #C7C7C7;
+  border-right-color: #C7C7C7;
+  color: #555;
+  text-shadow: 0 1px 0 #F6F6F6;
+  *border: 0;
+  background: #E9E9E9 url(http://vk.com/images/button_vk.png?1) repeat-x top;
+  background-position: 0px -59px;
+}
+.vkps_button_gray button:hover,
+.vkps_button_gray button.hover {
+  background-position: 0px -53px;
+  border-top-color: #D7D7D7;
+  border-bottom-color: #B7B7B7;
+  border-left-color: #CBCBCB;
+  border-right-color: #CBCBCB;
+}
+.vkps_button_gray button:active,
+.vkps_button_gray button.active {
+  background: #DCDCDC;
+  border-top-color: #BEBEBE;
+  border-bottom-color: #B6B6B6;
+  border-left-color: #BDBDBD;
+  border-right-color: #BDBDBD;
+  position:relative;
+}
+
+td.vkps_shadow {
+  background: rgba(0,0,0,0.8);
+  font-size: 1px;
+}
+
+#vkps_area {
+  position: relative;
+  font-size: 1px;
+}
+#vkps_controls {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  cursor: auto;
+}
+#vkps_controls .vkps_button_blue, #vkps_controls .vkps_button_gray {
+  display: block;
+  margin: 0 10px 10px 10px;
+}
+#vkps_controls button {
+  width: 100%;
+}
