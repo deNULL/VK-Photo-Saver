@@ -21,6 +21,13 @@
       "background.js"
     ]
   },
+  "content_scripts": [
+    {
+      "all_frames": true,
+      "matches": ["http://*.tumblr.com/*"],
+      "js": ["context_listener.js"]
+    }
+  ],
   "browser_action": {
     "default_icon": {
       "19": "iсon-snap.png"

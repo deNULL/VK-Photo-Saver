@@ -52,26 +52,20 @@ function quickUpload(info, tab) {
 }
 
 function attachToPost(info, tab) {
-  download(info.srcUrl, function(blob) {
-    var reader = new FileReader();
-    reader.onload = function() {
-      attach(reader.result, true);
-    }
-    reader.readAsDataURL(blob);
+  attach([info.srcUrl], true);
+}
+
+function attachTumblrToPost(info, tab) {
+  chrome.tabs.sendMessage(tab.id, {action: "find_sources"}, function(response) {
+    attach(response.sources, true);
   });
 }
 
 function attachToMessage(info, tab) {
-  download(info.srcUrl, function(blob) {
-    var reader = new FileReader();
-    reader.onload = function() {
-      attach(reader.result, false);
-    }
-    reader.readAsDataURL(blob);
-  });
+  attach([info.srcUrl], false);
 }
 
-function attach(url, post) {
+function attach(urls, post) {
   chrome.tabs.create({ url: post ? 'http://vk.com/feed?w=postbox' : 'http://vk.com/write' }, function(tab) {
     chrome.tabs.executeScript(tab.id, {
       //file: 'attach.js'
@@ -92,7 +86,6 @@ function attach(blob) {\\n\
     blob.fileName = blob.name = \\'photo.png\\';\\n\
     Upload.onFileApiSend(cur.uplId, [ blob ]);\\n\
     window.FormData = __FormData;\\n\
-    box.hide();\\n\
   }});\\n\
   box.show();\\n\
 };\\n\
@@ -116,7 +109,12 @@ window.addEventListener(\\'message\\', function(event) {\\n\
       if (!cur.addMedia) { return; }\\n\
       clearInterval(retryTimer);\\n\
       cur.chooseMedia = cur.addMedia[id].chooseMedia;\\n\
-      cur.showMediaProgress = cur.addMedia[id].showMediaProgress;\\n\
+      cur.showMediaProgress = function(type,i,info){\\n\
+        if(info.loaded/info.total==1){\\n\
+          window.postMessage({message:\\'attachDataUrlSuccess\\'}, \\'*\\');\\n\
+        }\\n\
+        cur.addMedia[id].showMediaProgress.apply(this,arguments);\\n\
+      };\\n\
       cur.attachCount = cur.addMedia[id].attachCount;\\n\
       attach(new Blob([ab], { type: mime }));\\n\
     }, 100);\\n\
@@ -127,11 +125,64 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {\n
   if (request.message == 'attachDataUrl') {\n\
     window.postMessage(request, '*');\n\
   }\n\
-});"
+});\n\
+window.addEventListener('message', function(event) {\n\
+  if (event.data.message && (event.data.message == 'attachDataUrlSuccess')) {\n\
+    chrome.runtime.sendMessage(event.data);\n\
+  }\n\
+});\n\
+"
     }, function() {
-      chrome.tabs.sendMessage(tab.id, { message: 'attachDataUrl', url: url, post: post });
+      var tasks = [];
+      for (var i=0,l=urls.length;i<l; i++) {
+        var url = urls[i];
+        tasks.push(downloadTask(tab.id, url, post));
+      }
+      executeTasks(tasks, 500);
     });
   });
+}
+
+var currentOnFinish;
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  if (request.message == 'attachDataUrlSuccess') {
+    console.log('success');
+    if (currentOnFinish) currentOnFinish();
+  }
+});
+
+function downloadTask(tabId, url, post) {
+  return function(onFinish) {
+    download(url, function(blob) {
+      var reader = new FileReader();
+      currentOnFinish = onFinish;
+      console.log(url);
+      reader.onload = function() {
+        chrome.tabs.sendMessage(tabId, {
+          message: 'attachDataUrl', 
+          url: reader.result, 
+          post: post 
+        });
+      }
+      reader.readAsDataURL(blob);
+    });
+  }
+}
+
+function executeTasks(tasks, timeout) {
+  var len = tasks.length;
+  var run = function(i){
+    var task = tasks[i];
+    task(function(){
+      if (i<len - 1) {
+        setTimeout(function() {
+          run(i+1);
+        }, timeout);
+      }
+    })
+  }
+  run(0);
 }
 
 function download(url, callback) {
