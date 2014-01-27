@@ -39,6 +39,19 @@ function loadGroups() {
   api('groups.get', { extended: 1 }, function(data) {
     if (data.response) {
       groups = data.response.items;
+      groups.sort(function(a, b) {
+        if (a.is_admin != b.is_admin) {
+          return b.is_admin - a.is_admin;
+        } else
+        /*if (a.admin_level != b.admin_level) {
+          return b.admin_level - a.admin_level;
+        } else*/
+        if (a.name != b.name) {
+          return (a.name < b.name) ? -1 : 1;
+        } else {
+          return 0;
+        }
+      });
       for (var i = 0; i < groups.length; i++) {
         groupsByID[groups[i].id] = groups[i];
       }
@@ -62,6 +75,13 @@ function loadAlbums(group_id) {
         albumsByID[group_id || 0][albums[i].id] = albums[i];
       }
       rebuildSelects();
+
+      for (var i = 0; i < opts.albums.length; i++) {
+        if (((opts.albums[i].group ? opts.albums[i].group.id : 0) == (group_id || 0)) && isArray(opts.albums[i].album)) {
+          opts.albums[i].album = albums;
+        }
+      }
+      saveOptions({ albums: opts.albums });
     }
     return true;
   });
@@ -98,11 +118,14 @@ function rebuildSelects() {
   for (var i = 0; i < opts.albums.length; i++) {
     var groupList = [
       '<option value=0' + (opts.albums[i].group ? '' : ' selected') + '>Ваши альбомы</option>',
-      '<option value=-1 disabled>— Альбомы групп —</option>'
+      '<option value=-1 disabled><i>a</i>— Альбомы' + (groups && groups.length && groups[0].is_admin ? ' администрируемых' : '') + ' групп —</option>'
     ];
     if (groups) {
       for (var j = 0; j < groups.length; j++) {
         groupList.push('<option value=' + groups[j].id + ((opts.albums[i].group && opts.albums[i].group.id == groups[j].id) ? ' selected' : '') + '>' + groups[j].name + '</option>');
+        if (j < groups.length - 1 && groups[j].is_admin && !groups[j + 1].is_admin) {
+          groupList.push('<option value=-1 disabled>— Альбомы групп —</option>');
+        }
       }
     } else
     if (opts.albums[i].group) {

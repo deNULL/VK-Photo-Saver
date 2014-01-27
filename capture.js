@@ -16,21 +16,99 @@ root.style.bottom = '0';
 root.style.zIndex = '100000000';
 root.style.cursor = 'crosshair';
 
-root.innerHTML = '<table cellspacing=0 cellpadding=0 width=100% height=100%><tr><td id="vkps_top" class="vkps_shadow" colspan=3></td></tr>\
+root.innerHTML = '<img id="vkps_screenshot" width=100% height=100% style="position:absolute;left:0;top:0;right:0;bottom:0;z-index:-1"></canvas>\
+<table cellspacing=0 cellpadding=0 width=100% height=100%><tr><td id="vkps_top" class="vkps_shadow" colspan=3></td></tr>\
 <tr><td id="vkps_left" class="vkps_shadow">&nbsp;</td><td id="vkps_area">&nbsp;\
-<div id="vkps_controls">\
-<div id="vkps_quick_upload" class="vkps_button_blue"><button id="vkps_quick_upload_btn">Загрузить в альбом «...»</button></div>\
-<div id="vkps_attach_post" class="vkps_button_blue"><button>Прикрепить к новой записи...</button></div>\
-<div id="vkps_attach_message" class="vkps_button_blue"><button>Прикрепить к сообщению...</button></div>\
-<div id="vkps_save" class="vkps_button_blue"><button>Сохранить в файл</button></div>\
-<div id="vkps_cancel" class="vkps_button_gray"><button>Отмена</button></div>\
-</div>\
+<div id="vkps_controls"></div>\
 </td><td id="vkps_right" class="vkps_shadow">&nbsp;</td></tr>\
 <tr><td class="vkps_shadow" colspan=3></td></tr></table>';
 document.body.appendChild(root);
 
-chrome.runtime.sendMessage({ message: 'getParams' }, function(data) {
-  ge('vkps_quick_upload_btn').innerHTML = 'Загрузить в альбом «' + data.qu_name + '»';
+var screenshot = ge('vkps_screenshot');
+
+chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
+  var opts = data.opts;
+  screenshot.src = data.screenshotSrc;
+
+  var buttons = [];
+
+  //if (opts.showAlbum) {
+    for (var i = 0; i < opts.albums.length; i++) {
+      if (isArray(opts.albums[i].album)) {
+        buttons.push('<div class="vkps_submenu_wrap"><div id="vkps_upload' + i + '" class="vkps_button_blue"><div id="vkps_upload_btn">' + (opts.albums[i].group ? 'Загрузить в альбом группы «' + opts.albums[i].group.name + '» ▸' : 'Загрузить в свой альбом ▸') + '</div></div>');
+
+        var submenu = [];
+        for (var j = 0; j < opts.albums[i].album.length; j++) {
+          submenu.push('<div id="vkps_upload' + i + '_subitem' + j + '" class="vkps_subitem">' + opts.albums[i].album[j].title + '</div>');
+        }
+        if (submenu.length == 0) {
+          submenu.push('<div class="vkps_subitem disabled">Нет альбомов</div>');
+        }
+        buttons.push('<div id="vkps_upload' + i + '_submenu" class="vkps_submenu">' + submenu.join('') + '</div></div>');
+      } else {
+        buttons.push('<div id="vkps_upload' + i + '" class="vkps_button_blue"><div id="vkps_upload_btn">Загрузить в альбом «' + opts.albums[i].album.title + '»</div></div>');
+      }
+    }
+  //}
+  //if (opts.showMessage) {
+    buttons.push('<div id="vkps_attach_message" class="vkps_button_blue"><div>Прикрепить к сообщению...</div></div>');
+  //}
+  //if (opts.showPost) {
+    buttons.push('<div id="vkps_attach_post" class="vkps_button_blue"><div>Прикрепить к новой записи...</div></div>');
+  //}
+
+  buttons.push('<div id="vkps_save" class="vkps_button_blue"><div>Сохранить в файл</div></div>');
+  buttons.push('<div id="vkps_cancel" class="vkps_button_gray"><div>Отмена</div></div>');
+
+  ge('vkps_controls').innerHTML = buttons.join('');
+
+  //if (opts.showAlbum) {
+    for (var i = 0; i < opts.albums.length; i++) {
+      var upload = ge('vkps_upload' + i);
+      if (isArray(opts.albums[i].album)) {
+        for (var j = 0; j < opts.albums[i].album.length; j++) {
+          (function(i, j) {
+            var subitem = ge('vkps_upload' + i + '_subitem' + j);
+            subitem.onclick = function(e) {
+              send('captureAlbum', { group: opts.albums[i].group, album: opts.albums[i].album[j] });
+            }
+          })(i, j);
+        }
+        (function(i) {
+          var submenu = ge('vkps_upload' + i + '_submenu');
+          submenu.onmousewheel = function(e) {
+            e.stopPropagation();
+          }
+        })(i);
+      } else {
+        (function(i) {
+          upload.onclick = function(e) {
+            send('captureAlbum', { group: opts.albums[i].group, album: opts.albums[i].album });
+          }
+        })(i);
+      }
+    }
+  //}
+
+  var attach_post = ge('vkps_attach_post');
+  attach_post.onclick = function(e) {
+    send('captureAttachPost');
+  }
+
+  var attach_message = ge('vkps_attach_message');
+  attach_message.onclick = function(e) {
+    send('captureAttachMessage');
+  }
+
+  var attach_save = ge('vkps_save');
+  attach_save.onclick = function(e) {
+    send('captureSave');
+  }
+
+  var cancel = ge('vkps_cancel');
+  cancel.onclick = function(e) {
+    dismiss();
+  }
 });
 
 var pressed = false;
@@ -94,45 +172,27 @@ controls.onmousedown = function(e) {
   return false;
 }
 
-var quick_upload = ge('vkps_quick_upload');
-quick_upload.onclick = function(e) {
-  send('captureAlbum');
-}
-
-var attach_post = ge('vkps_attach_post');
-attach_post.onclick = function(e) {
-  send('captureAttachPost');
-}
-
-var attach_message = ge('vkps_attach_message');
-attach_message.onclick = function(e) {
-  send('captureAttachMessage');
-}
-
-var attach_save = ge('vkps_save');
-attach_save.onclick = function(e) {
-  send('captureSave');
-}
-
-function send(msg) {
-  dismiss();
-  chrome.runtime.sendMessage({
+function send(msg, extra) {
+  var canvas = document.createElement('canvas');
+  canvas.width = area.clientWidth * devicePixelRatio;
+  canvas.height = area.clientHeight * devicePixelRatio;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(screenshot, - leftSide.clientWidth * devicePixelRatio, - topSide.clientHeight * devicePixelRatio);
+  var message = {
     message: msg,
-    x: leftSide.clientWidth * devicePixelRatio,
-    y: topSide.clientHeight * devicePixelRatio,
-    w: area.clientWidth * devicePixelRatio,
-    h: area.clientHeight * devicePixelRatio
-  });
-}
-
-var cancel = ge('vkps_cancel');
-cancel.onclick = function(e) {
+    screenshot: canvas.toDataURL('image/png')
+  };
+  if (extra) {
+    for (var i in extra) {
+      message[i] = extra[i];
+    }
+  }
   dismiss();
+  chrome.runtime.sendMessage(message);
 }
 
-function ge(e) {
-  return document.getElementById(e);
-}
+function ge(e) { return document.getElementById(e); }
+function isArray(obj) { return Object.prototype.toString.call(obj) === '[object Array]'; }
 
 function preventDefault(e) {
   e = e || window.event;
@@ -140,8 +200,13 @@ function preventDefault(e) {
   e.returnValue = false;
 }
 
-window.addEventListener('DOMMouseScroll', preventDefault, false);
-window.onmousewheel = document.onmousewheel = preventDefault;
+function preventScroll(e) {
+  if (e.target && e.target.classList.contains('vkps_subitem')) return;
+  preventDefault(e);
+}
+
+window.addEventListener('DOMMouseScroll', preventScroll, false);
+window.onmousewheel = document.onmousewheel = preventScroll;
 document.onkeydown = function(e) {
   console.log(e);
   var keys = [37, 38, 39, 40];
@@ -155,10 +220,13 @@ document.onkeydown = function(e) {
     }
   }
 }
+var overflow = document.body.style.overflow;
+document.body.style.overflow = 'hidden';
 
 function dismiss() {
-  window.removeEventListener('DOMMouseScroll', preventDefault, false);
+  window.removeEventListener('DOMMouseScroll', preventScroll, false);
   window.onmousewheel = document.onmousewheel = document.onkeydown = null;
+  document.body.style.overflow = overflow;
   document.body.removeChild(root);
 }
 

@@ -121,12 +121,12 @@ function rebuildMenu() {
       }
     });
   }
-  menu.push({
+  /*menu.push({
     props: {
       type: 'separator',
       contexts: ['image']
     }
-  });
+  });*/
   if (opts.showPost) {
     menu.push({
       props: {
@@ -158,7 +158,8 @@ function rebuildMenu() {
 
   menuCapture = chrome.contextMenus.create({
     title: 'Сделать скриншот страницы',
-    onclick: startCapture
+    onclick: startCapture,
+    contexts: ['page', 'frame', 'selection', 'link', 'editable'] // not 'all' because we don't want extra item on images
   });
 }
 rebuildMenu();
@@ -194,27 +195,18 @@ function uploadImage(group, album, src) {
   });
 }
 
-function startCapture() {
-  chrome.tabs.insertCSS({
-    file: 'styles.css'
-  });
-  chrome.tabs.executeScript({
-    file: 'capture.js'
-  });
-}
-
-function captureTab(windowId, crop, callback) {
-  chrome.tabs.captureVisibleTab(windowId, function(dataUrl) {
-    var fullSize = new Image();
-    fullSize.onload = function() {
-      var canvas = document.createElement('canvas');
-      canvas.width = crop.w;
-      canvas.height = crop.h;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(fullSize, -crop.x, -crop.y);
-      callback(canvasToBlob(canvas));
-    }
-    fullSize.src = dataUrl;
+var currentScreenshot;
+function startCapture(info, tab) {
+  chrome.tabs.captureVisibleTab(tab.windowId, {
+    format: 'png'
+  }, function(dataUrl) {
+    chrome.tabs.insertCSS(tab.id, {
+      file: 'styles.css'
+    });
+    chrome.tabs.executeScript(tab.id, {
+      file: 'capture.js'
+    });
+    currentScreenshot = dataUrl;
   });
 }
 
@@ -223,32 +215,30 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     saveOptions(request.update, true);
     rebuildMenu();
   } else
+  if (request.message == 'getOptions') {
+    sendResponse(opts);
+  } else
+  if (request.message == 'getCaptureParams') {
+    sendResponse({ opts: opts, screenshotSrc: currentScreenshot });
+  } else
   if (request.message == 'captureAlbum') {
-    captureTab(sender.tab.windowId, request, function(result) {
-      var params = { album_id: request.album.id };
-      if (request.group) {
-        params.group_id = request.group.id;
+    var result = canvasToBlob(request.screenshot);
+    var params = { album_id: request.album.id };
+    if (request.group) {
+      params.group_id = request.group.id;
+    }
+    api('photos.getUploadServer', params, function(data) {
+      if (data.response) {
+        upload(request.group, request.album, result.blob, data.response.upload_url, result.url);
       }
-      api('photos.getUploadServer', params, function(data) {
-        if (data.response) {
-          upload(request.group, request.album, result.blob, data.response.upload_url, result.url);
-        }
-      });
     });
   } else
   if (request.message == 'captureAttachPost' || request.message == 'captureAttachMessage') {
-    captureTab(sender.tab.windowId, request, function(result) {
-      attach([result.url], request.message == 'captureAttachPost');
-    });
+    attach([canvasToBlob(request.screenshot).url], request.message == 'captureAttachPost');
   } else
   if (request.message == 'captureSave') {
-    captureTab(sender.tab.windowId, request, function(result) {
-      var date = new Date();
-      saveAs(result.blob, 'screenshot-' + date.getDate() + month[date.getMonth()] + date.getFullYear() + '-' + date.getHours() + '.' + date.getMinutes() + '.' + date.getSeconds() + '.png');
-    });
-  } else
-  if (request.message == 'getParams') {
-    sendResponse(localStorage);
+    var date = new Date();
+    saveAs(canvasToBlob(request.screenshot).blob, 'screenshot-' + date.getDate() + month[date.getMonth()] + date.getFullYear() + '-' + pad(date.getHours(), 2) + '.' + pad(date.getMinutes(), 2) + '.' + pad(date.getSeconds(), 2) + '.png');
   }
 });
 
@@ -257,5 +247,5 @@ chrome.runtime.onInstalled.addListener(function(details) {
 });
 
 chrome.browserAction.onClicked.addListener(function(tab) {
-  startCapture();
+  startCapture(false, tab);
 });

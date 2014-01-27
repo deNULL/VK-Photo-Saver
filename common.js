@@ -1,5 +1,6 @@
 function ge(e) {return document.getElementById(e)};
 function isArray(obj) { return Object.prototype.toString.call(obj) === '[object Array]'; }
+function pad(s, len, ch, r) { return (r ? s : '') + (new Array(Math.max(0, len - (s + '').length + 1))).join(ch ? ch : '0') + (r ? '' : s); }
 function num(n,cs) {
   n = n % 100;
   if ((n % 10 == 0) || (n % 10 > 4) || (n > 4 && n < 21)) {
@@ -252,14 +253,26 @@ function upload(group, album, blob, url, src) {
         console.log('saved', data);
 
         if (data.response) {
+          var photo = data.response[0];
+
+          var copied = '';
+          if (opts.afterUpload == 'src') {
+            copyToClipboard(photo.photo_2560 || photo.photo_1280 || photo.photo_807 || photo.photo_604 || photo.photo_130 || photo.photo_75);
+            copied = '\n\nСсылка на изображение скопирована в буфер обмена.';
+          } else
+          if (opts.afterUpload == 'page') {
+            copyToClipboard('http://vk.com/photo' + photo.owner_id + '_' + photo.id);
+            copied = '\n\nСсылка на страницу фотографии скопирована в буфер обмена.';
+          }
+
           var notification = window.webkitNotifications.createNotification(
             src,
             'Загрузка завершена',
-            'Изображение успешно загружено в альбом «' + album.title + '». Щелкните, чтобы просмотреть.'
+            'Изображение успешно загружено в альбом «' + album.title + '». Щелкните, чтобы просмотреть.' + copied
           );
 
           notification.onclick = function () {
-            window.open('http://vk.com/photo' + data.response[0].owner_id + '_' + data.response[0].id);
+            window.open('http://vk.com/photo' + photo.owner_id + '_' + photo.id);
             notification.close();
           }
           notification.show();
@@ -275,8 +288,17 @@ function upload(group, album, blob, url, src) {
   xhr.send(formData);
 }
 
+function copyToClipboard(text) {
+  var ta = document.createElement('textarea');
+  ta.innerText = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+
 function canvasToBlob(canvas) {
-  var url = canvas.toDataURL('image/png');
+  var url = (typeof canvas == 'string') ? canvas : canvas.toDataURL('image/png');
   var bytes;
   if (url.split(',')[0].indexOf('base64') >= 0) {
     bytes = atob(url.split(',')[1]);
