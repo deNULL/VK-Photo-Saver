@@ -118,7 +118,7 @@ function rebuildSelects() {
   for (var i = 0; i < opts.albums.length; i++) {
     var groupList = [
       '<option value=0' + (opts.albums[i].group ? '' : ' selected') + '>Ваши альбомы</option>',
-      '<option value=-1 disabled><i>a</i>— Альбомы' + (groups && groups.length && groups[0].is_admin ? ' администрируемых' : '') + ' групп —</option>'
+      '<option value=-1 disabled>— Альбомы' + (groups && groups.length && groups[0].is_admin ? ' администрируемых' : '') + ' групп —</option>'
     ];
     if (groups) {
       for (var j = 0; j < groups.length; j++) {

@@ -158,8 +158,8 @@ function rebuildMenu() {
 
   menuCapture = chrome.contextMenus.create({
     title: 'Сделать скриншот страницы',
-    onclick: startCapture,
-    contexts: ['page', 'frame', 'selection', 'link', 'editable'] // not 'all' because we don't want extra item on images
+    onclick: capture,
+    contexts: ['page', 'selection', 'editable'] // not 'all' because we don't want extra item on images
   });
 }
 rebuildMenu();
@@ -196,7 +196,7 @@ function uploadImage(group, album, src) {
 }
 
 var currentScreenshot;
-function startCapture(info, tab) {
+function capture(info, tab) {
   chrome.tabs.captureVisibleTab(tab.windowId, {
     format: 'png'
   }, function(dataUrl) {
@@ -247,5 +247,5 @@ chrome.runtime.onInstalled.addListener(function(details) {
 });
 
 chrome.browserAction.onClicked.addListener(function(tab) {
-  startCapture(false, tab);
+  capture(false, tab);
 });

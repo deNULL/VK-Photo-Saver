@@ -88,23 +88,24 @@ function attach(urls, post) {
       code: "var e = document.createElement('script');e.innerHTML = '\\n\
 (function(window) {\\n\
 function attach(blob, src) {\\n\
-  var ext = src.match(/\\.([^.]+)$/)[1], isDoc = (ext == \\'gif\\');\\n\
+  var match = src.match(/\\\\/([^\\\\/?]+?)(\\\\.([^\\\\/.?]+))?($|\\\\?)/);\\n\
+  var isDoc = (blob.type == \\'image/gif\\'), ext = isDoc ? \\'.gif\\' : (match[2] || \\'.jpg\\');\\n\
+  var fname = match[1] + ext;\\n\
   var url = isDoc ? \\'docs.php\\' : \\'al_photos.php\\';\\n\
   var args = isDoc ? { act: \\'a_choose_doc_box\\', al: 1 } : { act: \\'choose_photo\\', max_files: 10 };\\n\
   var scripts = isDoc ? [\\'upload.js\\'] : [\\'photos.js\\', \\'upload.js\\'];\\n\
   var box = showBox(url, args, {stat: scripts, onDone: function() {\\n\
     if (!box) return;\\n\
     var __FormData = window.FormData;\\n\
-    var fileName = \\'file\\'+Math.random()+\\'.\\'+ext;\\n\
     window.FormData = function() {\\n\
       var obj = new __FormData();\\n\
       var __append = obj.append;\\n\
       obj.append = function(name, file) {\\n\
-        return __append.call(this, name, file, fileName);\\n\
+        return __append.call(this, name, file, fname);\\n\
       };\\n\
       return obj;\\n\
     };\\n\
-    blob.fileName = blob.name = fileName;\\n\
+    blob.fileName = blob.name = fname;\\n\
     Upload.onFileApiSend(cur.uplId, [ blob ]);\\n\
     window.FormData = __FormData;\\n\
   }});\\n\
