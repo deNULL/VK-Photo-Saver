@@ -135,3 +135,8 @@ td.vkps_shadow {
 .vkps_subitem:hover {
   background: #E1E7ED;
 }
+.vkps_subitem.disabled {
+  cursor: default;
+  color: #555;
+  background: #EEE !important;
+}

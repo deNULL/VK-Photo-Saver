@@ -39,10 +39,12 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
 
         var submenu = [];
         for (var j = 0; j < opts.albums[i].album.length; j++) {
-          submenu.push('<div id="vkps_upload' + i + '_subitem' + j + '" class="vkps_subitem">' + opts.albums[i].album[j].title + '</div>');
+          if (!opts.albums[i].group || opts.albums[i].album[j].can_upload) {
+            submenu.push('<div id="vkps_upload' + i + '_subitem' + j + '" class="vkps_subitem">' + opts.albums[i].album[j].title + '</div>');
+          }
         }
         if (submenu.length == 0) {
-          submenu.push('<div class="vkps_subitem disabled">Нет альбомов</div>');
+          submenu.push('<div class="vkps_subitem disabled">Нет доступных альбомов</div>');
         }
         buttons.push('<div id="vkps_upload' + i + '_submenu" class="vkps_submenu">' + submenu.join('') + '</div></div>');
       } else {
@@ -67,12 +69,14 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
       var upload = ge('vkps_upload' + i);
       if (isArray(opts.albums[i].album)) {
         for (var j = 0; j < opts.albums[i].album.length; j++) {
-          (function(i, j) {
-            var subitem = ge('vkps_upload' + i + '_subitem' + j);
-            subitem.onclick = function(e) {
-              send('captureAlbum', { group: opts.albums[i].group, album: opts.albums[i].album[j] });
-            }
-          })(i, j);
+          if (!opts.albums[i].group || opts.albums[i].album[j].can_upload) {
+            (function(i, j) {
+              var subitem = ge('vkps_upload' + i + '_subitem' + j);
+              subitem.onclick = function(e) {
+                send('captureAlbum', { group: opts.albums[i].group, album: opts.albums[i].album[j] });
+              }
+            })(i, j);
+          }
         }
         (function(i) {
           var submenu = ge('vkps_upload' + i + '_submenu');

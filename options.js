@@ -67,22 +67,21 @@ function loadAlbums(group_id) {
   }
 
   api('photos.getAlbums', params, function(data) {
-    if (data.response) {
-      var albums = data.response.items;
-      albumsByGroup[group_id || 0] = albums;
-      albumsByID[group_id || 0] = {};
-      for (var i = 0; i < albums.length; i++) {
-        albumsByID[group_id || 0][albums[i].id] = albums[i];
-      }
-      rebuildSelects();
-
-      for (var i = 0; i < opts.albums.length; i++) {
-        if (((opts.albums[i].group ? opts.albums[i].group.id : 0) == (group_id || 0)) && isArray(opts.albums[i].album)) {
-          opts.albums[i].album = albums;
-        }
-      }
-      saveOptions({ albums: opts.albums });
+    var albums = data.response ? data.response.items : [];
+    albumsByGroup[group_id || 0] = albums;
+    albumsByID[group_id || 0] = {};
+    for (var i = 0; i < albums.length; i++) {
+      albumsByID[group_id || 0][albums[i].id] = albums[i];
     }
+
+    rebuildSelects();
+
+    for (var i = 0; i < opts.albums.length; i++) {
+      if (((opts.albums[i].group ? opts.albums[i].group.id : 0) == (group_id || 0)) && isArray(opts.albums[i].album)) {
+        opts.albums[i].album = albums;
+      }
+    }
+    saveOptions({ albums: opts.albums });
     return true;
   });
 }
@@ -142,7 +141,7 @@ function rebuildSelects() {
     if (albumsByGroup[opts.albums[i].group ? opts.albums[i].group.id : 0]) {
       var albums = albumsByGroup[opts.albums[i].group ? opts.albums[i].group.id : 0];
       for (var j = 0; j < albums.length; j++) {
-        albumList.push('<option value=' + albums[j].id + ((!isArray(opts.albums[i].album) && opts.albums[i].album.id == albums[j].id) ? ' selected' : '') + '>' + albums[j].title + '</option>');
+        albumList.push('<option value=' + albums[j].id + ((!isArray(opts.albums[i].album) && opts.albums[i].album.id == albums[j].id) ? ' selected' : '') + (opts.albums[i].group && !albums[j].can_upload ? ' disabled' : '') + '>' + albums[j].title + '</option>');
       }
     } else
     if (!isArray(opts.albums[i].album)) {

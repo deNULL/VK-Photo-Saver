@@ -68,22 +68,24 @@ function rebuildMenu() {
         };
         menu.push(item);
         for (var j = 0; j < opts.albums[i].album.length; j++) {
-          (function(item, group, album) {
-            item.childs.push({
-              props: {
-                title: album.title,
-                onclick: function(info, tab) {
-                  uploadImage(group, album, info.srcUrl);
-                },
-                contexts: ['image']
-              }
-            });
-          })(item, opts.albums[i].group, opts.albums[i].album[j]);
+          if (!opts.albums[i].group || opts.albums[i].album[j].can_upload) {
+            (function(item, group, album) {
+              item.childs.push({
+                props: {
+                  title: album.title,
+                  onclick: function(info, tab) {
+                    uploadImage(group, album, info.srcUrl);
+                  },
+                  contexts: ['image']
+                }
+              });
+            })(item, opts.albums[i].group, opts.albums[i].album[j]);
+          }
         }
         if (item.childs.length == 0) {
           item.childs.push({
             props: {
-              title: 'Нет альбомов',
+              title: 'Нет доступных альбомов',
               enabled: false,
               contexts: ['image']
             }
