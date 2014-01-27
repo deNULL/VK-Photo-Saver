@@ -164,7 +164,7 @@ window.addEventListener('message', function(event) {\n\
             chrome.tabs.sendMessage(tab.id, {
               message: 'attachDataUrl',
               url: url,
-              src: 'screenshot.png',
+              src: '/screenshot.png',
               post: post
             });
           });
