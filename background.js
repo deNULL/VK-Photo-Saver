@@ -199,7 +199,7 @@ function uploadImage(group, album, src) {
 
 var currentScreenshot;
 function capture(info, tab) {
-  chrome.tabs.captureVisibleTab(tab.windowId, {
+  chrome.tabs.captureVisibleTab({
     format: 'png'
   }, function(dataUrl) {
     chrome.tabs.insertCSS(tab.id, {
