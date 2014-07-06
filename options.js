@@ -61,7 +61,7 @@ function loadGroups() {
 }
 
 function loadAlbums(group_id) {
-  var params = { extended: 1 };
+  var params = { extended: 1, need_covers: 1 };
   if (group_id) {
     params.owner_id = -group_id;
   }
@@ -135,7 +135,7 @@ function rebuildSelects() {
       opts.albums[i].album = [];
     }
     var albumList = [
-      '<option value=0' + (isArray(opts.albums[i].album) ? ' selected' : '') + '>Все альбомы (выпадающее подменю)</option>',
+      '<option value=0' + (isArray(opts.albums[i].album) ? ' selected' : '') + '>Все альбомы (показывать как подменю)</option>',
       '<option value=-1 disabled>— Альбомы —</option>'
     ];
     if (albumsByGroup[opts.albums[i].group ? opts.albums[i].group.id : 0]) {

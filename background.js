@@ -54,7 +54,64 @@ function refreshMenuItem(item, parentId) {
   return item;
 }
 
-function rebuildMenu() {
+var tabsInMenu = [];
+function rebuildMenu(tabs) {
+  if (!tabs) {
+    chrome.tabs.query({
+      url: '*://vk.com/*',
+      windowType: 'normal'
+    }, function(tabs) {
+      var checked = {};
+      var left = tabs.length;
+      for (var i = 0; i < tabs.length; i++) {
+        (function(tab) {
+          chrome.tabs.executeScript(tab.id, {
+            code: '\
+              if (document.getElementById("im_texts")) {\
+                ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim() });\
+              } else\
+              if (document.getElementById("submit_post_box")) {\
+                ({ wall: true, title: document.title });\
+              } else (false);'
+          }, function(results) {
+            checked[tab.id] = results[0];
+            left--;
+
+            var filtered = [];
+            if (!left) {
+              tabsInMenu = [];
+              for (var j = 0; j < tabs.length; j++) {
+                var res = checked[tabs[j].id];
+                if (res) {
+                  (function(res, tab) {
+                    tabsInMenu.push(tab.id);
+                    filtered.push({
+                      props: {
+                        title: res.wall ? ('Прикрепить к записи на стене «' + res.title + '»') : ('Прикрепить к диалогу «' + res.title + '»'),
+                        onclick: function(info) {
+                          attachInTab([info.srcUrl], tab, res.wall);
+                        },
+                        contexts: ['image']
+                      }
+                    });
+                  })(res, tabs[j]);
+                }
+              }
+
+              rebuildMenu(filtered);
+            }
+          });
+        })(tabs[i]);
+      }
+
+      if (!left) {
+        tabsInMenu = [];
+        rebuildMenu([]);
+      }
+    });
+    return;
+  }
+
   menu = [];
   if (opts.showAlbum) {
     for (var i = 0; i < opts.albums.length; i++) {
@@ -112,10 +169,11 @@ function rebuildMenu() {
       contexts: ['image']
     }
   });
+  menu = menu.concat(tabs);
   if (opts.showMessage) {
     menu.push({
       props: {
-        title: 'Прикрепить к сообщению...',
+        title: 'Прикрепить к новому сообщению...',
         onclick: function(info, tab) {
           attach([info.srcUrl], false);
         },
@@ -161,7 +219,7 @@ function rebuildMenu() {
   menuCapture = chrome.contextMenus.create({
     title: 'Сделать скриншот страницы',
     onclick: capture,
-    contexts: ['page', 'selection', 'editable'] // not 'all' because we don't want extra item on images
+    contexts: ['page', 'selection', 'editable', 'video', 'audio'] // not 'all' because we don't want extra item on images (also 'link' not included because images are often links too)
   });
 }
 rebuildMenu();
@@ -206,11 +264,29 @@ function capture(info, tab) {
       file: 'styles.css'
     });
     chrome.tabs.executeScript(tab.id, {
-      file: 'capture.js'
+      file: 'inject.js'
     });
     currentScreenshot = dataUrl;
   });
 }
+
+chrome.tabs.onCreated.addListener(function(tab) {
+  if (tab.url.match(/^https?:\/\/vk.com\//i)) {
+    rebuildMenu();
+  }
+});
+chrome.tabs.onUpdated.addListener(function(tabId, info, tab) {
+  if (info.url && info.url.match(/^https?:\/\/vk.com\//i)) {
+    setTimeout(function() {
+      rebuildMenu();
+    }, 0);
+  }
+});
+chrome.tabs.onRemoved.addListener(function(tabId, info) {
+  if (tabsInMenu.indexOf(tabId) > -1) {
+    rebuildMenu();
+  }
+});
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.message == 'updateOptions') {

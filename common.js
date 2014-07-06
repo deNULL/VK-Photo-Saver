@@ -81,11 +81,13 @@ if (opts['albums'].length == 0) {
 }
 saveOptions();
 
-function attach(urls, post) {
-  chrome.tabs.create({ url: post ? 'http://vk.com/feed?w=postbox' : 'http://vk.com/write' }, function(tab) {
-    chrome.tabs.executeScript(tab.id, {
-      //file: 'attach.js'
-      code: "var e = document.createElement('script');e.innerHTML = '\\n\
+function attachInTab(urls, tab, post) {
+  chrome.windows.update(tab.windowId, { focused: true });
+  chrome.tabs.update(tab.id, { active: true });
+  chrome.tabs.executeScript(tab.id, {
+    //file: 'attach.js'
+    code: "if (!document.getElementById('vkps_injection')) {\n\
+var e = document.createElement('script');e.id = 'vkps_injection';e.innerHTML = '\\n\
 (function(window) {\\n\
 function attach(blob, src) {\\n\
   var match = src.match(/\\\\/([^\\\\/?]+?)(\\\\.([^\\\\/.?]+))?($|\\\\?)/);\\n\
@@ -126,10 +128,16 @@ window.addEventListener(\\'message\\', function(event) {\\n\
     for (var i = 0; i < bytes.length; i++) {\\n\
       ia[i] = bytes.charCodeAt(i);\\n\
     }\\n\
-    var id = event.data.post ? 1 : 2;\\n\
+    var id = -1;\\n\
+    for (var j in cur.addMedia) {\\n\
+      if (j > id) id = j;\\n\
+    };\\n\
     var retryTimer = setInterval(function() {\\n\
       if (!cur.addMedia) { return; }\\n\
       clearInterval(retryTimer);\\n\
+      var __chooseMedia = cur.chooseMedia;\\n\
+      var __showMediaProgress = cur.showMediaProgress;\\n\
+      var __attachCount = cur.attachCount;\\n\
       cur.chooseMedia = cur.addMedia[id].chooseMedia;\\n\
       cur.showMediaProgress = function(type,i,info){\\n\
         if(info.loaded/info.total==1){\\n\
@@ -153,27 +161,32 @@ window.addEventListener('message', function(event) {\n\
     chrome.runtime.sendMessage(event.data);\n\
   }\n\
 });\n\
-"
-    }, function() {
-      var tasks = [];
-      for (var i = 0, l = urls.length; i < l; i++) {
-        var url = urls[i];
-        if (url.indexOf('data:') == 0) { // Data URL
-          tasks.push(function(onFinish) {
-            currentOnFinish = onFinish;
-            chrome.tabs.sendMessage(tab.id, {
-              message: 'attachDataUrl',
-              url: url,
-              src: '/screenshot.png',
-              post: post
-            });
+}"
+  }, function() {
+    var tasks = [];
+    for (var i = 0, l = urls.length; i < l; i++) {
+      var url = urls[i];
+      if (url.indexOf('data:') == 0) { // Data URL
+        tasks.push(function(onFinish) {
+          currentOnFinish = onFinish;
+          chrome.tabs.sendMessage(tab.id, {
+            message: 'attachDataUrl',
+            url: url,
+            src: '/screenshot.png',
+            post: post
           });
-        } else {
-          tasks.push(downloadTask(tab.id, url, post));
-        }
+        });
+      } else {
+        tasks.push(downloadTask(tab.id, url, post));
       }
-      executeTasks(tasks, 500);
-    });
+    }
+    executeTasks(tasks, 500);
+  });
+}
+
+function attach(urls, post) {
+  chrome.tabs.create({ url: post ? 'http://vk.com/feed?w=postbox' : 'http://vk.com/write' }, function(tab) {
+    attachInTab(urls, tab, post);
   });
 }
 
@@ -225,7 +238,7 @@ function executeTasks(tasks, timeout) {
 function download(url, callback) {
   var xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function(){
-    if (this.readyState == 4 && this.status == 200){
+    if (this.readyState == 4 && this.response) {
       callback(this.response);
     }
   }
@@ -234,10 +247,30 @@ function download(url, callback) {
   xhr.send();
 }
 
+var uploadNum = 0;
 function upload(group, album, blob, url, src) {
+  chrome.notifications.create('upload' + (++uploadNum), {
+    type: 'progress',
+    iconUrl: 'icon-48.png',
+    title: 'Загрузка изображения',
+    message: 'Подождите, изображение загружается в альбом «' + album.title + '»...',
+    progress: 0
+  }, function() {});
+
   var formData = new FormData();
   formData.append('file1', blob, 'file.jpg');
   var xhr = new XMLHttpRequest();
+  xhr.upload.onprogress = function(pe) {
+    if (pe.lengthComputable) {
+      chrome.notifications.update('upload' + uploadNum, {
+        type: 'progress',
+        iconUrl: 'icon-48.png',
+        title: 'Загрузка изображения',
+        message: 'Подождите, изображение загружается в альбом «' + album.title + '»...',
+        progress: (100 * pe.loaded / pe.total) | 0
+      }, function() {});
+    }
+  }
   xhr.onreadystatechange = function(){
     if (this.readyState == 4 && this.status == 200) {
       var res = (typeof this.response == 'string') ? JSON.parse(this.response) : this.response;
@@ -266,20 +299,36 @@ function upload(group, album, blob, url, src) {
             copied = '\n\nСсылка на страницу фотографии скопирована в буфер обмена.';
           }
 
-          var notification = window.webkitNotifications.createNotification(
-            src,
-            'Загрузка завершена',
-            'Изображение успешно загружено в альбом «' + album.title + '». Щелкните, чтобы просмотреть.' + copied
-          );
+          chrome.notifications.update('upload' + uploadNum, {
+            type: 'image',
+            iconUrl: 'icon-48.png',
+            title: 'Загрузка изображения',
+            message: 'Изображение успешно загружено в альбом «' + album.title + '».' + copied,
+            imageUrl: URL.createObjectURL(blob),
+            buttons: [{ title: 'Открыть страницу фотографии'}, { title: 'Открыть изображение' }]
+          }, function() {});
 
-          notification.onclick = function () {
-            window.open('http://vk.com/photo' + photo.owner_id + '_' + photo.id);
-            notification.close();
+          var clickNotification = function(notificationId, buttonId) {
+            if (notificationId == 'upload' + uploadNum) {
+              if (buttonId == 0) {
+                window.open('http://vk.com/photo' + photo.owner_id + '_' + photo.id);
+              } else {
+                window.open(photo.photo_2560 || photo.photo_1280 || photo.photo_807 || photo.photo_604 || photo.photo_130 || photo.photo_75);
+              }
+              chrome.notifications.clear('upload' + uploadNum, function() {});
+            }
+          };
+          var closeNotification = function(notificationId, byUser) {
+            chrome.notifications.onButtonClicked.removeListener(clickNotification);
+            chrome.notifications.onClosed.removeListener(closeNotification);
           }
-          notification.show();
+
+          chrome.notifications.onButtonClicked.addListener(clickNotification);
+          chrome.notifications.onClosed.addListener(closeNotification);
+
           setTimeout(function() {
-            notification.cancel();
-          }, 3000);
+            chrome.notifications.clear('upload' + uploadNum, function() {});
+          }, 5000);
         }
       });
     }
@@ -332,16 +381,31 @@ function api(method, params, callback) {
     if (this.readyState == 4 && this.status == 200) {
       var res = (typeof this.response == 'string') ? JSON.parse(this.response) : this.response;
       if (!callback(res) && res.error) {
-        var notification = window.webkitNotifications.createNotification(
-          'icon-48.png',
-          'Ошибка ' + res.error.error_code + ' при выполнении запроса «' + method + '»',
-          'Произошла ошибка «' + res.error.error_msg + ' при обращении к API ВКонтакте. Сообщите разработчику.'
-        );
+        if ((res.error.error_code == 10) || (res.error.error_code == 13) || (res.error.error_code == 5)) {
+          var notification = new Notification(
+            'Расширению «VK Photo Saver» требуется авторизация', {
+              icon: 'icon-48.png',
+              body: 'Для загрузки изображений в ВКонтакте нужно разрешить доступ. Щелкните здесь чтобы авторизоваться.'
+            }
+          );
+          notification.onclick = function() {
+            chrome.tabs.create({ url: 'options.html' });
+            notification.close();
+          }
+        } else {
+          var notification = new Notification(
+            'Ошибка ' + res.error.error_code + ' при выполнении запроса «' + method + '»', {
+              icon: 'icon-48.png',
+              body: 'Произошла ошибка «' + res.error.error_msg + ' при обращении к API ВКонтакте. Сообщите разработчику.'
+            }
+          );
 
-        notification.onclick = function () {
-          window.open('http://vk.com/write189814');
-          notification.close();
+          notification.onclick = function () {
+            window.open('http://vk.com/write189814');
+            notification.close();
+          }
         }
+
         notification.show();
         setTimeout(function() {
           notification.cancel();
