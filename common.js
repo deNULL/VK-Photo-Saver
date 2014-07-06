@@ -48,6 +48,7 @@ loadOptions({
   userID: false,
 
   showAlbum: true,
+  showTabs: true,
   showMessage: true,
   showPost: true,
   showFullPost: true,
@@ -128,16 +129,13 @@ window.addEventListener(\\'message\\', function(event) {\\n\
     for (var i = 0; i < bytes.length; i++) {\\n\
       ia[i] = bytes.charCodeAt(i);\\n\
     }\\n\
-    var id = -1;\\n\
-    for (var j in cur.addMedia) {\\n\
-      if (j > id) id = j;\\n\
-    };\\n\
     var retryTimer = setInterval(function() {\\n\
       if (!cur.addMedia) { return; }\\n\
+      var id = -1;\\n\
+      for (var j in cur.addMedia) {\\n\
+        if (j > id) id = j;\\n\
+      };\\n\
       clearInterval(retryTimer);\\n\
-      var __chooseMedia = cur.chooseMedia;\\n\
-      var __showMediaProgress = cur.showMediaProgress;\\n\
-      var __attachCount = cur.attachCount;\\n\
       cur.chooseMedia = cur.addMedia[id].chooseMedia;\\n\
       cur.showMediaProgress = function(type,i,info){\\n\
         if(info.loaded/info.total==1){\\n\

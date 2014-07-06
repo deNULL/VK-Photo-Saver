@@ -55,60 +55,57 @@ function refreshMenuItem(item, parentId) {
 }
 
 var tabsInMenu = [];
-function rebuildMenu(tabs) {
-  if (!tabs) {
-    chrome.tabs.query({
-      url: '*://vk.com/*',
-      windowType: 'normal'
-    }, function(tabs) {
-      var checked = {};
-      var left = tabs.length;
-      for (var i = 0; i < tabs.length; i++) {
-        (function(tab) {
-          chrome.tabs.executeScript(tab.id, {
-            code: '\
-              if (document.getElementById("im_texts")) {\
-                ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim() });\
-              } else\
-              if (document.getElementById("submit_post_box")) {\
-                ({ wall: true, title: document.title });\
-              } else (false);'
-          }, function(results) {
-            checked[tab.id] = results[0];
-            left--;
+function getSuitableTabs(callback) {
+  chrome.tabs.query({
+    url: '*://vk.com/*',
+    windowType: 'normal'
+  }, function(tabs) {
+    var checked = {};
+    var left = tabs.length;
+    for (var i = 0; i < tabs.length; i++) {
+      (function(tab) {
+        chrome.tabs.executeScript(tab.id, {
+          code: '\
+            if (document.getElementById("im_texts")) {\
+              ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim() });\
+            } else\
+            if (document.getElementById("submit_post_box")) {\
+              ({ wall: true, title: document.title });\
+            } else (false);'
+        }, function(results) {
+          checked[tab.id] = results[0];
+          left--;
 
-            var filtered = [];
-            if (!left) {
-              tabsInMenu = [];
-              for (var j = 0; j < tabs.length; j++) {
-                var res = checked[tabs[j].id];
-                if (res) {
-                  (function(res, tab) {
-                    tabsInMenu.push(tab.id);
-                    filtered.push({
-                      props: {
-                        title: res.wall ? ('Прикрепить к записи на стене «' + res.title + '»') : ('Прикрепить к диалогу «' + res.title + '»'),
-                        onclick: function(info) {
-                          attachInTab([info.srcUrl], tab, res.wall);
-                        },
-                        contexts: ['image']
-                      }
-                    });
-                  })(res, tabs[j]);
-                }
+          var filtered = [];
+          if (!left) {
+            tabsInMenu = [];
+            for (var j = 0; j < tabs.length; j++) {
+              var res = checked[tabs[j].id];
+              if (res) {
+                tabsInMenu.push(tabs[j].id);
+                filtered.push({
+                  tab: tabs[j],
+                  wall: res.wall,
+                  title: res.title
+                });
               }
-
-              rebuildMenu(filtered);
             }
-          });
-        })(tabs[i]);
-      }
 
-      if (!left) {
-        tabsInMenu = [];
-        rebuildMenu([]);
-      }
-    });
+            callback(filtered);
+          }
+        });
+      })(tabs[i]);
+    }
+
+    if (!left) {
+      tabsInMenu = [];
+      callback([]);
+    }
+  });
+}
+function rebuildMenu(tabs) {
+  if (opts.showTabs && !tabs) {
+    getSuitableTabs(rebuildMenu);
     return;
   }
 
@@ -169,7 +166,21 @@ function rebuildMenu(tabs) {
       contexts: ['image']
     }
   });
-  menu = menu.concat(tabs);
+  if (opts.showTabs) {
+    for (var i = 0; i < tabs.length; i++) {
+      (function(tab) {
+        menu.push({
+          props: {
+            title: tab.wall ? ('Прикрепить к записи на стене «' + tab.title + '»') : ('Прикрепить к диалогу «' + tab.title + '»'),
+            onclick: function(info) {
+              attachInTab([info.srcUrl], tab.tab, tab.wall);
+            },
+            contexts: ['image']
+          }
+        });
+      })(tabs[i]);
+    }
+  }
   if (opts.showMessage) {
     menu.push({
       props: {
@@ -256,34 +267,35 @@ function uploadImage(group, album, src) {
 }
 
 var currentScreenshot;
+var currentTabs;
 function capture(info, tab) {
   chrome.tabs.captureVisibleTab({
     format: 'png'
   }, function(dataUrl) {
-    chrome.tabs.insertCSS(tab.id, {
-      file: 'styles.css'
+    getSuitableTabs(function(tabs) {
+      chrome.tabs.executeScript(tab.id, {
+        file: 'inject.js'
+      });
+      currentScreenshot = dataUrl;
+      currentTabs = tabs;
     });
-    chrome.tabs.executeScript(tab.id, {
-      file: 'inject.js'
-    });
-    currentScreenshot = dataUrl;
   });
 }
 
 chrome.tabs.onCreated.addListener(function(tab) {
-  if (tab.url.match(/^https?:\/\/vk.com\//i)) {
+  if (opts.showTabs && tab.url.match(/^https?:\/\/vk.com\//i)) {
     rebuildMenu();
   }
 });
 chrome.tabs.onUpdated.addListener(function(tabId, info, tab) {
-  if (info.url && info.url.match(/^https?:\/\/vk.com\//i)) {
+  if (opts.showTabs && info.url && info.url.match(/^https?:\/\/vk.com\//i)) {
     setTimeout(function() {
       rebuildMenu();
     }, 0);
   }
 });
 chrome.tabs.onRemoved.addListener(function(tabId, info) {
-  if (tabsInMenu.indexOf(tabId) > -1) {
+  if (opts.showTabs && tabsInMenu.indexOf(tabId) > -1) {
     rebuildMenu();
   }
 });
@@ -297,7 +309,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     sendResponse(opts);
   } else
   if (request.message == 'getCaptureParams') {
-    sendResponse({ opts: opts, screenshotSrc: currentScreenshot });
+    sendResponse({ opts: opts, tabs: currentTabs, screenshotSrc: currentScreenshot });
   } else
   if (request.message == 'captureAlbum') {
     var result = canvasToBlob(request.screenshot);
@@ -317,6 +329,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.message == 'captureSave') {
     var date = new Date();
     saveAs(canvasToBlob(request.screenshot).blob, 'screenshot-' + date.getDate() + month[date.getMonth()] + date.getFullYear() + '-' + pad(date.getHours(), 2) + '.' + pad(date.getMinutes(), 2) + '.' + pad(date.getSeconds(), 2) + '.png');
+  } else
+  if (request.message == 'captureTab') {
+    attachInTab([canvasToBlob(request.screenshot).url], request.tab, request.wall);
   }
 });
 

@@ -251,6 +251,7 @@ function check(id, opt) {
   }
 }
 check('album', 'showAlbum');
+check('tabs', 'showTabs');
 check('message', 'showMessage');
 check('post', 'showPost');
 check('full_post', 'showFullPost');

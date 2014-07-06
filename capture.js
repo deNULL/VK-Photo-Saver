@@ -6,9 +6,12 @@ function dismiss() {
   window.top.postMessage('dismissPhotoSaver', '*');
 }
 
+var controlsHeight = 0;
 chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
   var opts = data.opts;
+  var tabs = data.tabs;
   screenshot.onload = function() {
+    screenshot.style.display = 'block';
     window.top.postMessage('hideScrollBarPhotoSaver', '*');
   }
   screenshot.src = data.screenshotSrc;
@@ -35,6 +38,11 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
       }
     }
   //}
+  //if (opts.showTabs) {
+  for (var i = 0; i < tabs.length; i++) {
+    buttons.push('<div id="attach_tab' + i + '" class="button_blue"><div>' + (tabs[i].wall ? ('Прикрепить к записи на стене «' + tabs[i].title + '»') : ('Прикрепить к диалогу «' + tabs[i].title + '»')) + '</div></div>');
+  }
+  //}
   //if (opts.showMessage) {
     buttons.push('<div id="attach_message" class="button_blue"><div>Прикрепить к сообщению...</div></div>');
   //}
@@ -45,7 +53,8 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
   buttons.push('<div id="save" class="button_blue"><div>Сохранить в файл</div></div>');
   buttons.push('<div id="cancel" class="button_gray"><div>Отмена</div></div>');
 
-  ge('controls').innerHTML = buttons.join('');
+  controls.innerHTML = buttons.join('');
+  controlsHeight = controls.clientHeight;
 
   //if (opts.showAlbum) {
     for (var i = 0; i < opts.albums.length; i++) {
@@ -75,6 +84,16 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
         })(i);
       }
     }
+  //}
+  //if (opts.showTabs) {
+  for (var i = 0; i < tabs.length; i++) {
+    var tab = ge('attach_tab' + i);
+    (function(i) {
+      tab.onclick = function(e) {
+        send('captureTab', { tab: tabs[i].tab, wall: tabs[i].wall });
+      }
+    })(i);
+  }
   //}
 
   var attach_post = ge('attach_post');
@@ -143,6 +162,14 @@ function updateControls() {
     controls.style.left = '0px';
     controls.style.right = 'auto';
     controls.style.top = '10px';
+  }
+
+  if (controlsHeight > (wrap.clientHeight + shadowB.clientHeight)) {
+    controls.style.top = 'auto';
+    controls.style.bottom = '-12px';
+  } else {
+    controls.style.top = '0px';
+    controls.style.bottom = 'auto';
   }
 }
 
@@ -243,8 +270,8 @@ root.onmousemove = function(e) {
 }
 
 root.onmouseup = function(e) {
-  updateControls();
   controls.style.display = 'block';
+  updateControls();
   overlay.style.display = 'none';
   if (wrap.clientWidth < 2 && wrap.clientHeight < 2) {
     dismiss();
