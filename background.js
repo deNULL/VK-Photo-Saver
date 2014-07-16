@@ -88,7 +88,14 @@ function getSuitableTabs(callback) {
                   wall: res.wall,
                   title: res.title
                 });
-              }
+              } /* else { // For debug purposes
+                tabsInMenu.push(tabs[j].id);
+                filtered.push({
+                  tab: tabs[j],
+                  wall: false,
+                  title: tabs[j].title
+                })
+              } */
             }
 
             callback(filtered);

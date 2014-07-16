@@ -82,7 +82,7 @@ if (opts['albums'].length == 0) {
 }
 saveOptions();
 
-function attachInTab(urls, tab, post) {
+function attachInTab(urls, tab, post, addMediaId) {
   chrome.windows.update(tab.windowId, { focused: true });
   chrome.tabs.update(tab.id, { active: true });
   chrome.tabs.executeScript(tab.id, {
@@ -116,6 +116,7 @@ function attach(blob, src) {\\n\
 };\\n\
 window.addEventListener(\\'message\\', function(event) {\\n\
   if (event.data.message && (event.data.message == \\'attachDataUrl\\')) {\\n\
+    debugger;\\n\
     var url = event.data.url;\\n\
     var bytes;\\n\
     if (url.split(\\',\\')[0].indexOf(\\'base64\\') >= 0) {\\n\
@@ -132,9 +133,13 @@ window.addEventListener(\\'message\\', function(event) {\\n\
     var retryTimer = setInterval(function() {\\n\
       if (!cur.addMedia) { return; }\\n\
       var id = -1;\\n\
-      for (var j in cur.addMedia) {\\n\
-        if (j > id) id = j;\\n\
-      };\\n\
+      if (event.data.addMediaId) {\\n\
+        id = event.data.addMediaId;\\n\
+      } else {\\n\
+        for (var j in cur.addMedia) {\\n\
+          if (j > id) id = j;\\n\
+        }\\n\
+      }\\n\
       clearInterval(retryTimer);\\n\
       cur.chooseMedia = cur.addMedia[id].chooseMedia;\\n\
       cur.showMediaProgress = function(type,i,info){\\n\
@@ -171,11 +176,12 @@ window.addEventListener('message', function(event) {\n\
             message: 'attachDataUrl',
             url: url,
             src: '/screenshot.png',
-            post: post
+            post: post,
+            addMediaId: addMediaId
           });
         });
       } else {
-        tasks.push(downloadTask(tab.id, url, post));
+        tasks.push(downloadTask(tab.id, url, post, addMediaId));
       }
     }
     executeTasks(tasks, 500);
@@ -184,7 +190,7 @@ window.addEventListener('message', function(event) {\n\
 
 function attach(urls, post) {
   chrome.tabs.create({ url: post ? 'http://vk.com/feed?w=postbox' : 'http://vk.com/write' }, function(tab) {
-    attachInTab(urls, tab, post);
+    attachInTab(urls, tab, post, post ? undefined : 2);
   });
 }
 
@@ -199,7 +205,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 });
 
-function downloadTask(tabId, url, post) {
+function downloadTask(tabId, url, post, addMediaId) {
   return function(onFinish) {
     download(url, function(blob) {
       var reader = new FileReader();
@@ -210,7 +216,8 @@ function downloadTask(tabId, url, post) {
           message: 'attachDataUrl',
           url: reader.result,
           src: url,
-          post: post
+          post: post,
+          addMediaId: addMediaId,
         });
       }
       reader.readAsDataURL(blob);
