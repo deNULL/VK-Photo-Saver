@@ -64,15 +64,8 @@ function getSuitableTabs(callback) {
     var left = tabs.length;
     for (var i = 0; i < tabs.length; i++) {
       (function(tab) {
-        chrome.tabs.executeScript(tab.id, {
-          code: '\
-            if (document.getElementById("im_texts")) {\
-              ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim() });\
-            } else\
-            if (document.getElementById("submit_post_box")) {\
-              ({ wall: true, title: document.title });\
-            } else (false);'
-        }, function(results) {
+        var doneTab = function(results) {
+          clearTimeout(tabTimeout);
           checked[tab.id] = results[0];
           left--;
 
@@ -100,7 +93,22 @@ function getSuitableTabs(callback) {
 
             callback(filtered);
           }
-        });
+        };
+
+        var tabTimeout = setTimeout(function() { // Crashed tabs workaround
+          if (checked[tab.id] === undefined) {
+            doneTab([false]);
+          }
+        }, 200);
+        chrome.tabs.executeScript(tab.id, {
+          code: '\
+            if (document.getElementById("im_texts")) {\
+              ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim() });\
+            } else\
+            if (document.getElementById("submit_post_box")) {\
+              ({ wall: true, title: document.title });\
+            } else (false);'
+        }, doneTab);
       })(tabs[i]);
     }
 
