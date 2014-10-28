@@ -98,7 +98,7 @@ function attach(blob, src) {\\n\
   var args = isDoc ? { act: \\'a_choose_doc_box\\', al: 1 } : { act: \\'choose_photo\\', max_files: 10 };\\n\
   var scripts = isDoc ? [\\'upload.js\\'] : [\\'photos.js\\', \\'upload.js\\'];\\n\
   var box = showBox(url, args, {stat: scripts, onDone: function() {\\n\
-    if (!box) return;\\n\
+    if (!box || (arguments.length < 2)) return;\\n\
     var __FormData = window.FormData;\\n\
     window.FormData = function() {\\n\
       var obj = new __FormData();\\n\

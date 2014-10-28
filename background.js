@@ -259,7 +259,7 @@ function uploadImage(group, album, src) {
   var blob = false;
   var upload_url = false;
 
-  var params = { album_id: album.id };
+  var params = { album_id: album.id, https: 1 };
   if (group) {
     params.group_id = group.id;
   }
@@ -328,7 +328,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   } else
   if (request.message == 'captureAlbum') {
     var result = canvasToBlob(request.screenshot);
-    var params = { album_id: request.album.id };
+    var params = { album_id: request.album.id, https: 1 };
     if (request.group) {
       params.group_id = request.group.id;
     }
