@@ -66,6 +66,9 @@ function getSuitableTabs(callback) {
       (function(tab) {
         var doneTab = function(results) {
           clearTimeout(tabTimeout);
+          if (!results) {
+            return;
+          }
           checked[tab.id] = results[0];
           left--;
 

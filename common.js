@@ -99,18 +99,8 @@ function attach(blob, src) {\\n\
   var scripts = isDoc ? [\\'upload.js\\'] : [\\'photos.js\\', \\'upload.js\\'];\\n\
   var box = showBox(url, args, {stat: scripts, onDone: function() {\\n\
     if (!box || (arguments.length < 2)) return;\\n\
-    var __FormData = window.FormData;\\n\
-    window.FormData = function() {\\n\
-      var obj = new __FormData();\\n\
-      var __append = obj.append;\\n\
-      obj.append = function(name, file) {\\n\
-        return __append.call(this, name, file, fname);\\n\
-      };\\n\
-      return obj;\\n\
-    };\\n\
-    blob.fileName = blob.name = fname;\\n\
+    blob.fileName = blob.filename = blob.name = fname;\\n\
     Upload.onFileApiSend(cur.uplId, [ blob ]);\\n\
-    window.FormData = __FormData;\\n\
   }});\\n\
   box.show();\\n\
 };\\n\
