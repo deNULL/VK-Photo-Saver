@@ -82,6 +82,7 @@ function getSuitableTabs(callback) {
                 filtered.push({
                   tab: tabs[j],
                   wall: res.wall,
+                  type: res.type,
                   title: res.title
                 });
               } /* else { // For debug purposes
@@ -110,6 +111,10 @@ function getSuitableTabs(callback) {
             } else\
             if (document.getElementById("submit_post_box")) {\
               ({ wall: true, title: document.title });\
+            } else\
+            if (document.getElementById("tickets_reply")) {\
+              var t = document.querySelector("#tickets_name .title");\
+              ({ type: "ticket", title: (t && t.childNodes[0]) ? t.childNodes[0].textContent.trim() : document.title.split(" | ")[0].trim() });\
             } else (false);'
         }, doneTab);
       })(tabs[i]);
@@ -189,7 +194,7 @@ function rebuildMenu(tabs) {
       (function(tab) {
         menu.push({
           props: {
-            title: tab.wall ? ('Прикрепить к записи на стене «' + tab.title + '»') : ('Прикрепить к диалогу «' + tab.title + '»'),
+            title: (tab.type == "ticket") ? ('Прикрепить к вопросу «' + tab.title + '»') : tab.wall ? ('Прикрепить к записи на стене «' + tab.title + '»') : ('Прикрепить к диалогу «' + tab.title + '»'),
             onclick: function(info) {
               attachInTab([info.srcUrl], tab.tab, tab.wall);
             },
@@ -353,8 +358,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 });
 
-chrome.runtime.onInstalled.addListener(function(details) {
-  chrome.tabs.create({ url: 'options.html' });
+chrome.runtime.onInstalled.addListener(function(reason) {
+  if (reason == 'installed') {
+    chrome.tabs.create({ url: 'options.html' });
+  }
 });
 
 chrome.browserAction.onClicked.addListener(function(tab) {

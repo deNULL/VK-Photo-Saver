@@ -40,7 +40,9 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
   //}
   //if (opts.showTabs) {
   for (var i = 0; i < tabs.length; i++) {
-    buttons.push('<div id="attach_tab' + i + '" class="button_blue"><div>' + (tabs[i].wall ? ('Прикрепить к записи на стене «' + tabs[i].title + '»') : ('Прикрепить к диалогу «' + tabs[i].title + '»')) + '</div></div>');
+    buttons.push('<div id="attach_tab' + i + '" class="button_blue"><div>' +
+      (tabs[i].type == "ticket" ? ('Прикрепить к вопросу «' + tabs[i].title + '»') :
+       tabs[i].wall ? ('Прикрепить к записи на стене «' + tabs[i].title + '»') : ('Прикрепить к диалогу «' + tabs[i].title + '»')) + '</div></div>');
   }
   //}
   //if (opts.showMessage) {
