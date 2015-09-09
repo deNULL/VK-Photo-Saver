@@ -92,7 +92,7 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
     var tab = ge('attach_tab' + i);
     (function(i) {
       tab.onclick = function(e) {
-        send('captureTab', { tab: tabs[i].tab, wall: tabs[i].wall });
+        send('captureTab', { tab: tabs[i].tab, wall: tabs[i].wall, target: tabs[i].target });
       }
     })(i);
   }
@@ -119,10 +119,16 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
   }
 });
 
+window.addEventListener('message', function(e) {
+  if (e.data.message == 'updateCaptureBounds') {
+    updatePos(e.data.x, e.data.y, e.data.w, e.data.h);
+  }
+}, false);
+
 var pos = {};
 var drag = false;
-var x0 = 0;
-var y0 = 0;
+var selected = false;
+var x0, y0;
 
 var shadowL = ge('shadow_l'), shadowR = ge('shadow_r'), shadowT = ge('shadow_t'), shadowB = ge('shadow_b');
 var edgeL = ge('edge_l'), edgeR = ge('edge_r'), edgeT = ge('edge_t'), edgeB = ge('edge_b');
@@ -182,7 +188,7 @@ root.onmousedown = function(e) {
   }
   x0 = e.x, y0 = e.y;
 
-  updatePos(e.x, e.y, 1, 1);
+  //updatePos(e.x, e.y, 1, 1);
   overlay.style.cursor = 'crosshair';
   overlay.style.display = 'block';
   controls.style.display = 'none';
@@ -215,6 +221,9 @@ cornerBR.onmousedown = function(e) { return startDrag(e, 'bottom-right'); }
 
 
 root.onmousemove = function(e) {
+  if (Math.sqrt((e.x - x0) * (e.x - x0) + (e.y - y0) * (e.y - y0)) < 3) {
+    return;
+  }
   if (drag == 'select') {
     updatePos(
       Math.min(x0, e.x),
@@ -268,6 +277,9 @@ root.onmousemove = function(e) {
     }
 
     updatePos(x, y, w, h);
+  } else
+  if (x0 === undefined && y0 === undefined) {
+    window.top.postMessage({ message: 'updateCaptureElement', x: e.x, y: e.y, shift: e.shiftKey }, '*');
   }
 }
 
@@ -275,13 +287,16 @@ root.onmouseup = function(e) {
   controls.style.display = 'block';
   updateControls();
   overlay.style.display = 'none';
-  if (wrap.clientWidth < 2 && wrap.clientHeight < 2) {
+  /*if (wrap.clientWidth < 2 && wrap.clientHeight < 2) {
     dismiss();
-  }
+  }*/
   drag = false;
 }
 
 var controls = ge('controls');
+controls.style.display = 'none';
+overlay.style.display = 'block';
+
 controls.onmousedown = function(e) {
   e.stopPropagation();
   return false;

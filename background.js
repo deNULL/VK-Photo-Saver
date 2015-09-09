@@ -66,7 +66,7 @@ function getSuitableTabs(callback) {
       (function(tab) {
         var doneTab = function(results) {
           clearTimeout(tabTimeout);
-          if (!results) {
+          if (!results || (checked[tab.id] !== undefined)) {
             return;
           }
           checked[tab.id] = results[0];
@@ -83,7 +83,8 @@ function getSuitableTabs(callback) {
                   tab: tabs[j],
                   wall: res.wall,
                   type: res.type,
-                  title: res.title
+                  title: res.title,
+                  target: res.target,
                 });
               } /* else { // For debug purposes
                 tabsInMenu.push(tabs[j].id);
@@ -107,14 +108,14 @@ function getSuitableTabs(callback) {
         chrome.tabs.executeScript(tab.id, {
           code: '\
             if (document.getElementById("im_texts")) {\
-              ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim() });\
+              ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim(), target: "im_write_form" });\
             } else\
             if (document.getElementById("submit_post_box")) {\
-              ({ wall: true, title: document.title });\
+              ({ wall: true, title: document.title, target: "submit_post_box" });\
             } else\
             if (document.getElementById("tickets_reply")) {\
               var t = document.querySelector("#tickets_name .title");\
-              ({ type: "ticket", title: (t && t.childNodes[0]) ? t.childNodes[0].textContent.trim() : document.title.split(" | ")[0].trim() });\
+              ({ type: "ticket", title: (t && t.childNodes[0]) ? t.childNodes[0].textContent.trim() : document.title.split(" | ")[0].trim(), target: "tickets_post_form" });\
             } else (false);'
         }, doneTab);
       })(tabs[i]);
@@ -196,7 +197,7 @@ function rebuildMenu(tabs) {
           props: {
             title: (tab.type == "ticket") ? ('Прикрепить к вопросу «' + tab.title + '»') : tab.wall ? ('Прикрепить к записи на стене «' + tab.title + '»') : ('Прикрепить к диалогу «' + tab.title + '»'),
             onclick: function(info) {
-              attachInTab([info.srcUrl], tab.tab, tab.wall);
+              attachInTab([info.srcUrl], tab.tab, tab.wall, tab.target);
             },
             contexts: ['image']
           }
@@ -354,7 +355,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     saveAs(canvasToBlob(request.screenshot).blob, 'screenshot-' + date.getDate() + month[date.getMonth()] + date.getFullYear() + '-' + pad(date.getHours(), 2) + '.' + pad(date.getMinutes(), 2) + '.' + pad(date.getSeconds(), 2) + '.png');
   } else
   if (request.message == 'captureTab') {
-    attachInTab([canvasToBlob(request.screenshot).url], request.tab, request.wall);
+    attachInTab([canvasToBlob(request.screenshot).url], request.tab, request.wall, request.target);
   }
 });
 

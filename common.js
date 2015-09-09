@@ -82,79 +82,11 @@ if (opts['albums'].length == 0) {
 }
 saveOptions();
 
-function attachInTab(urls, tab, post, addMediaId) {
+function attachInTab(urls, tab, post, target) {
   chrome.windows.update(tab.windowId, { focused: true });
   chrome.tabs.update(tab.id, { active: true });
   chrome.tabs.executeScript(tab.id, {
-    //file: 'attach.js'
-    code: "if (!document.getElementById('vkps_injection')) {\n\
-var e = document.createElement('script');e.id = 'vkps_injection';e.innerHTML = '\\n\
-(function(window) {\\n\
-function attach(blob, src) {\\n\
-  var match = src.match(/\\\\/([^\\\\/?]+?)(\\\\.([^\\\\/.?]+))?($|\\\\?)/);\\n\
-  var isDoc = (blob.type == \\'image/gif\\'), ext = isDoc ? \\'.gif\\' : (match[2] || \\'.jpg\\');\\n\
-  var fname = match[1] + ext;\\n\
-  var url = isDoc ? \\'docs.php\\' : \\'al_photos.php\\';\\n\
-  var args = isDoc ? { act: \\'a_choose_doc_box\\', al: 1 } : { act: \\'choose_photo\\', max_files: 10 };\\n\
-  var scripts = isDoc ? [\\'upload.js\\'] : [\\'photos.js\\', \\'upload.js\\'];\\n\
-  var box = showBox(url, args, {stat: scripts, onDone: function() {\\n\
-    if (!box || (arguments.length < 2)) return;\\n\
-    blob.fileName = blob.filename = blob.name = fname;\\n\
-    Upload.onFileApiSend(cur.uplId, [ blob ]);\\n\
-  }});\\n\
-  box.show();\\n\
-};\\n\
-window.addEventListener(\\'message\\', function(event) {\\n\
-  if (event.data.message && (event.data.message == \\'attachDataUrl\\')) {\\n\
-    debugger;\\n\
-    var url = event.data.url;\\n\
-    var bytes;\\n\
-    if (url.split(\\',\\')[0].indexOf(\\'base64\\') >= 0) {\\n\
-      bytes = atob(url.split(\\',\\')[1]);\\n\
-    } else {\\n\
-      bytes = unescape(url.split(\\',\\')[1]);\\n\
-    }\\n\
-    var mime = url.split(\\',\\')[0].split(\\':\\')[1].split(\\';\\')[0];\\n\
-    var ab = new ArrayBuffer(bytes.length);\\n\
-    var ia = new Uint8Array(ab);\\n\
-    for (var i = 0; i < bytes.length; i++) {\\n\
-      ia[i] = bytes.charCodeAt(i);\\n\
-    }\\n\
-    var retryTimer = setInterval(function() {\\n\
-      if (!cur.addMedia) { return; }\\n\
-      var id = -1;\\n\
-      if (event.data.addMediaId) {\\n\
-        id = event.data.addMediaId;\\n\
-      } else {\\n\
-        for (var j in cur.addMedia) {\\n\
-          if (j > id) id = j;\\n\
-        }\\n\
-      }\\n\
-      clearInterval(retryTimer);\\n\
-      cur.chooseMedia = cur.addMedia[id].chooseMedia;\\n\
-      cur.showMediaProgress = function(type,i,info){\\n\
-        if(info.loaded/info.total==1){\\n\
-          window.postMessage({message:\\'attachDataUrlSuccess\\'}, \\'*\\');\\n\
-        }\\n\
-        cur.addMedia[id].showMediaProgress.apply(this,arguments);\\n\
-      };\\n\
-      cur.attachCount = cur.addMedia[id].attachCount;\\n\
-      attach(new Blob([ab], { type: mime }), event.data.src);\\n\
-    }, 100);\\n\
-  }\\n\
-}, false);\\n\
-})(window);';document.head.appendChild(e);\n\
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {\n\
-  if (request.message == 'attachDataUrl') {\n\
-    window.postMessage(request, '*');\n\
-  }\n\
-});\n\
-window.addEventListener('message', function(event) {\n\
-  if (event.data.message && (event.data.message == 'attachDataUrlSuccess')) {\n\
-    chrome.runtime.sendMessage(event.data);\n\
-  }\n\
-});\n\
-}"
+    file: 'vk-content.js'
   }, function() {
     var tasks = [];
     for (var i = 0, l = urls.length; i < l; i++) {
@@ -167,11 +99,11 @@ window.addEventListener('message', function(event) {\n\
             url: url,
             src: '/screenshot.png',
             post: post,
-            addMediaId: addMediaId
+            target: target
           });
         });
       } else {
-        tasks.push(downloadTask(tab.id, url, post, addMediaId));
+        tasks.push(downloadTask(tab.id, url, post, target));
       }
     }
     executeTasks(tasks, 500);
@@ -180,7 +112,7 @@ window.addEventListener('message', function(event) {\n\
 
 function attach(urls, post) {
   chrome.tabs.create({ url: post ? 'http://vk.com/feed?w=postbox' : 'http://vk.com/write' }, function(tab) {
-    attachInTab(urls, tab, post, post ? undefined : 2);
+    attachInTab(urls, tab, post, post ? 'pb_add_media' : 'imw_buttons');
   });
 }
 
@@ -195,7 +127,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
 });
 
-function downloadTask(tabId, url, post, addMediaId) {
+function downloadTask(tabId, url, post, target) {
   return function(onFinish) {
     download(url, function(blob) {
       var reader = new FileReader();
@@ -207,7 +139,7 @@ function downloadTask(tabId, url, post, addMediaId) {
           url: reader.result,
           src: url,
           post: post,
-          addMediaId: addMediaId,
+          target: target
         });
       }
       reader.readAsDataURL(blob);
