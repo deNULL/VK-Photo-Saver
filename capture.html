@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" href="css/font-awesome.css">
 <style>
 body {
   margin: 0;
@@ -160,15 +161,37 @@ body {
   display: none;
 }
 
+#actions {
+  position: absolute;
+  left: 0;
+  top: auto;
+  bottom: 100%;
+  width: 200px;
+  height: 68px;
+  padding: 8px 0px;
+}
+#actions .button_blue {
+  margin-top: 5px;
+}
+#actions .button_blue div {
+  padding: 6px;
+}
+#actions .button_blue.active div {
+  border-bottom-color: #789ABF;
+  border-top-color: #5980A9;
+  background: -webkit-linear-gradient(top, #38526E 0%, #486D92 100%);
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.4) inset;
+}
 #controls {
   position: absolute;
   left: 100%;
   top: 0;
+  margin-right: 10px;
   cursor: auto;
 }
 #controls .button_blue, #controls .button_gray {
   display: block;
-  padding: 0 10px 10px 10px;
+  padding: 0px 0px 5px 0px;
 }
 #controls button {
   width: 100%;
@@ -189,14 +212,14 @@ body {
   max-height: 400px;
   overflow-y: auto;
   position: absolute;
-  background: white;
+  background: #FFF;
   border: 1px solid #5980A9;
   border-top: none;
-  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+  box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.6);
   z-index: 1;
   font-size: 12px;
-  left: 10px;
-  right: 10px;
+  left: 0px;
+  right: 0px;
   top: 28px;
 }
 .subitem {
@@ -220,19 +243,125 @@ body {
   margin-top: -2px;
   margin-right: 5px;
 }
+#hint {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 412px;
+  max-width: 40%;
+  background: #FFF;
+  border-radius: 6px;
+  box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.4);
+  padding: 0px 12px;
+  font-size: 11px;
+}
+kbd {
+  padding: 0.1em 0.6em;
+  border: 1px solid #CCC;
+  font-size: 11px;
+  background-color: #F7F7F7;
+  color: #333;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 0 0 2px #FFF inset;
+  border-radius: 3px;
+  display: inline-block;
+  margin: 0 0.1em;
+  text-shadow: 0 1px 0 #FFF;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+#canvas, #tcanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: -2;
+}
+#info {
+  position: relative;
+  text-align: center;
+  color: #FFF;
+  margin-bottom: 6px;
+}
+#info #size_src {
+  position: absolute;
+  top: 1px;
+  left: 4px;
+}
+#info #size_trg {
+  position: absolute;
+  top: 1px;
+  right: 4px;
+}
+#info #scale {
+  color: #333;
+  background: #FFF;
+  padding: 1px 3px 2px;
+  font-size: 10px;
+  border-radius: 3px;
+  position: relative;
+}
+#info #scale:before {
+  content: " ";
+  position: absolute;
+  top: 50%;
+  margin-top: -1px;
+  right: 100%;
+  width: 3px;
+  height: 2px;
+  background: #FFF;
+}
+#info #scale:after {
+  content: "\f061";
+  position: absolute;
+  top: 50%;
+  margin-top: -6px;
+  left: 100%;
+  margin-left: -1px;
+  color: #FFF;
+  font: normal normal normal 14px/1 FontAwesome;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
 </style>
 </head>
 <body>
   <img id="screenshot" width="100%" height="100%" style="position:absolute;left:0;top:0;right:0;bottom:0;z-index:-2;display:none">
+  <canvas id="canvas" width="0" height="0"></canvas>
+  <canvas id="tcanvas" width="0" height="0"></canvas>
   <div id="shadow_t" class="shadow"></div>
   <div id="shadow_l" class="shadow"></div>
   <div id="wrap">
     <div id="corner_tl" class="border"></div><div id="edge_t" class="border"></div><div id="corner_tr" class="border"></div>
-    <div id="edge_l" class="border"></div><div id="area"><div id="controls"></div></div><div id="edge_r" class="border"></div>
+    <div id="edge_l" class="border"></div><div id="area"><div id="actions">
+      <div id="action_clear" class="button_blue"><div><i class="fa fa-fw fa-eraser"></i></div></div>
+      <div id="action_pen_red" class="button_blue"><div><i class="fa fa-fw fa-pencil" style="color: #ff4b1b; text-shadow: 0px -1px #FFF, 0px 1px #FFF, -1px 0px #FFF, 1px 0px #FFF;"></i></div></div>
+      <div id="action_pen_yellow" class="button_blue"><div><i class="fa fa-fw fa-pencil" style="color: #ffffa8"></i></div></div>
+      <div id="action_pen_green" class="button_blue"><div><i class="fa fa-fw fa-pencil" style="color: #0db100; text-shadow: 0px -1px #FFF, 0px 1px #FFF, -1px 0px #FFF, 1px 0px #FFF;"></i></div></div>
+      <div id="action_pen_blue" class="button_blue"><div><i class="fa fa-fw fa-pencil" style="color: #0c97df; text-shadow: 0px -1px #FFF, 0px 1px #FFF, -1px 0px #FFF, 1px 0px #FFF;"></i></div></div>
+      <div id="action_blur" class="button_blue"><div><i class="fa fa-fw fa-tint"></i></div></div>
+      <br/>
+      <div id="action_crop" class="button_blue"><div><i class="fa fa-fw fa-crop"></i></div></div>
+      <div id="action_arrow_red" class="button_blue"><div><i class="fa fa-fw fa-mouse-pointer" style="color: #ff4b1b; text-shadow: 0px -1px #FFF, 0px 1px #FFF, -1px 0px #FFF, 1px 0px #FFF;"></i></div></div>
+      <div id="action_arrow_yellow" class="button_blue"><div><i class="fa fa-fw fa-mouse-pointer" style="color: #ffffa8"></i></div></div>
+      <div id="action_arrow_green" class="button_blue"><div><i class="fa fa-fw fa-mouse-pointer" style="color: #0db100; text-shadow: 0px -1px #FFF, 0px 1px #FFF, -1px 0px #FFF, 1px 0px #FFF;"></i></div></div>
+      <div id="action_arrow_blue" class="button_blue"><div><i class="fa fa-fw fa-mouse-pointer" style="color: #0c97df; text-shadow: 0px -1px #FFF, 0px 1px #FFF, -1px 0px #FFF, 1px 0px #FFF;"></i></div></div>
+      <div id="action_focus" class="button_blue"><div><i class="fa fa-fw fa-search"></i></div></div>
+    </div><div id="controls"></div></div><div id="edge_r" class="border"></div>
     <div id="corner_bl" class="border"></div><div id="edge_b" class="border"></div><div id="corner_br" class="border"></div>
   </div>
   <div id="shadow_r" class="shadow"></div>
   <div id="shadow_b" class="shadow"></div>
+  <div id="hint">
+    <p><kbd>Левая кнопка мыши</kbd> – выбор области одного элемента.</p>
+    <p><kbd>Левая кнопка мыши</kbd> + перетащить курсор – выбор произвольной области.</p>
+    <p><kbd>Shift</kbd> + навести курсор на второй элемент + щелчок — выбор <b>диапазона</b> от первого элемента до второго.</p>
+    <p><kbd>+</kbd> / <kbd>—</kbd> или <kbd>колесико мыши</kbd> – увеличение/уменьшение рамки на 4 пикселя вокруг текущего элемента/диапазона элементов.</p>
+    <p><kbd>Пробел</kbd> – выбор всей видимой части страницы.</p>
+    <p><kbd>H</kbd> – показать/скрыть эту подсказку.</p>
+    <p><kbd>Esc</kbd> – отмена создания скриншота.</p>
+  </div>
   <div id="overlay"></div>
 
   <script src="capture.js"></script>

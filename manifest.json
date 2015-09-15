@@ -35,7 +35,17 @@
     },
     "default_title": "Сделать скриншот веб-страницы"
   },
-  "web_accessible_resources": ["capture.html", "vk-inject.js"],
+  "web_accessible_resources": [
+    "capture.html",
+    "vk-inject.js",
+    "css/font-awesome.css",
+    "fonts/fontawesome-webfont.eot",
+    "fonts/fontawesome-webfont.svg",
+    "fonts/fontawesome-webfont.ttf",
+    "fonts/fontawesome-webfont.woff",
+    "fonts/fontawesome-webfont.woff2",
+    "fonts/FontAwesome.otf"
+  ],
   "options_page": "options.html",
   "content_security_policy": "script-src 'self' https://login.vk.com https://vk.com; object-src 'self'"
 }
