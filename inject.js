@@ -139,10 +139,10 @@ function updateCursorPos(x, y, shift) {
 function getRect(el) {
   var rect = el.getBoundingClientRect();
   return {
-    left: Math.min(Math.max(0, Math.min(rect.left, rect.right)), root.offsetWidth),
-    right: Math.min(Math.max(0, Math.max(rect.left, rect.right)), root.offsetWidth),
-    top: Math.min(Math.max(0, Math.min(rect.top, rect.bottom)), root.offsetHeight),
-    bottom: Math.min(Math.max(0, Math.max(rect.top, rect.bottom)), root.offsetHeight),
+    left: Math.ceil(Math.min(Math.max(0, Math.min(rect.left, rect.right)), root.offsetWidth)),
+    right: Math.floor(Math.min(Math.max(0, Math.max(rect.left, rect.right)), root.offsetWidth)),
+    top: Math.ceil(Math.min(Math.max(0, Math.min(rect.top, rect.bottom)), root.offsetHeight)),
+    bottom: Math.floor(Math.min(Math.max(0, Math.max(rect.top, rect.bottom)), root.offsetHeight)),
   };
 }
 function updateLastHovered() {

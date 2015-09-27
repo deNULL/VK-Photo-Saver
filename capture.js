@@ -58,6 +58,7 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
     buttons.push('<div id="attach_post" class="button_blue"><div>Прикрепить к новой записи...</div></div>');
   //}
 
+  //buttons.push('<div id="copy" class="button_blue"><div>Копировать</div></div>');
   buttons.push('<div id="save" class="button_blue"><div>Сохранить в файл</div></div>');
   buttons.push('<div id="cancel" class="button_gray"><div>Отмена</div></div>');
 
@@ -118,6 +119,11 @@ chrome.runtime.sendMessage({ message: 'getCaptureParams' }, function(data) {
   attach_save.onclick = function(e) {
     send('captureSave');
   }
+
+  /*var attach_copy = ge('copy');
+  attach_copy.onclick = function(e) {
+    send('captureCopy');
+  }*/
 
   var cancel = ge('cancel');
   cancel.onclick = function(e) {
@@ -192,7 +198,7 @@ function updateScale() {
     sc.innerHTML = '×<b>' + scale + '</b>';
   }
   if (sizeTrg = ge('size_trg')) {
-    sizeTrg.innerHTML = (pos.w * scale) + '×' + (pos.h * scale);
+    sizeTrg.innerHTML = Math.floor(pos.w * scale) + '×' + Math.floor(pos.h * scale);
   }
 }
 
@@ -207,21 +213,47 @@ function updateCursorPos(x, y) {
 }
 
 function updateControls() {
+  var actionsOffset = 68;
+  if (shadowT.clientHeight > 75) {
+    actions.style.top = 'auto';
+    actions.style.bottom = '100%';
+    actionsOffset = 0;
+  } else
+  if (shadowR.clientWidth > 300) {
+    actions.style.left = '100%';
+    actions.style.right = 'auto';
+    actions.style.top = '-14px';
+    actions.style.bottom = 'auto';
+    actions.style.marginLeft = '10px';
+  } else
+  if (shadowL.clientWidth > 300) {
+    actions.style.left = 'auto';
+    actions.style.right = '100%';
+    actions.style.top = '-14px';
+    actions.style.bottom = 'auto';
+  } else {
+    actions.style.left = '0px';
+    actions.style.right = '100%';
+    actions.style.top = '-10px';
+    actions.style.bottom = 'auto';
+    actions.style.marginLeft = '5px';
+  }
+
   if (shadowR.clientWidth > 300) {
     controls.style.left = '100%';
     controls.style.right = 'auto';
-    controls.style.top = '-4px';
+    controls.style.top = (actionsOffset - 4) + 'px';
     controls.style.marginLeft = '10px';
   } else
   if (shadowL.clientWidth > 300) {
     controls.style.left = 'auto';
     controls.style.right = '100%';
-    controls.style.top = '-4px';
+    controls.style.top = (actionsOffset - 4) + 'px';
   } else {
     controls.style.left = '0px';
     controls.style.right = 'auto';
-    controls.style.top = '0px';
-    controls.style.marginLeft = '0px';
+    controls.style.top = actionsOffset + 'px';
+    controls.style.marginLeft = '5px';
   }
 
   if (controlsHeight > (wrap.clientHeight + shadowB.clientHeight)) {
@@ -242,23 +274,26 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
     var zoom = 2;
     var cx = mouse ? x0 : (x0 + x1) * 0.5;
     var cy = mouse ? y0 : (y0 + y1) * 0.5;
-    var r = Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0)) * (mouse ? 1/zoom : 0.5);
+    var r = (Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0)) + (mouse ? 0 : 8)) * (mouse ? 1/zoom : 0.5);
 
     var ctx = tcanvas.getContext('2d');
     ctx.clearRect(0, 0, tcanvas.width, tcanvas.height);
+    ctx.webkitImageSmoothingEnabled = true;//false;
 
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(cx, cy, r * zoom + Math.max(4, Math.min(10, r * 0.15)), 0, 2 * Math.PI);
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-    ctx.shadowBlur = 10;
+    ctx.arc(cx, cy, (r - 1) * zoom + Math.max(4, Math.min(10, r * 0.15)), 0, 2 * Math.PI);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.66)';
+    ctx.shadowBlur = 15;
     ctx.fill();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0)';
+    ctx.shadowBlur = 0;
 
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, r * zoom, 0, 2 * Math.PI);
+    ctx.arc(cx, cy, (r + 1) * zoom, 0, 2 * Math.PI);
     ctx.clip();
-    ctx.drawImage(screenshot, cx - r, cy - r, r * 2, r * 2, cx - r * zoom, cy - r * zoom, r * zoom * 2, r * zoom * 2);
+    ctx.drawImage(screenshot, cx - r - 1, cy - r - 1, r * 2 + 2, r * 2 + 2, cx - (r + 1) * zoom, cy - (r + 1) * zoom, (r + 1) * zoom * 2, (r + 1) * zoom * 2);
     ctx.restore();
 
 
@@ -266,9 +301,11 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
     ctx.lineWidth = Math.max(4, Math.min(10, r * 0.15));
     ctx.beginPath();
     ctx.arc(cx, cy, r * zoom + Math.max(4, Math.min(10, r * 0.15)) * 0.5, 0, 2 * Math.PI);
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.33)';
     ctx.shadowBlur = 30;
     ctx.stroke();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0)';
+    ctx.shadowBlur = 0;
   } else
   if (act && act.indexOf('_') > -1) {
     var parts = act.split('_');
@@ -282,25 +319,42 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
     if (parts[0] == 'pen') {
       hist.push([x1, y1]);
       var used = new Array(hist.length);
-      function checkRange(st, en) {
+      function checkRange(st, en, it) {
         if (en <= st) {
           return;
         }
+        var len = Math.sqrt((hist[en][0] - hist[st][0]) * (hist[en][0] - hist[st][0]) + (hist[en][1] - hist[st][1]) * (hist[en][1] - hist[st][1]));
         var maxi = -1;
+        var centi = -1;
         var maxdist = 0;
+        var centdist = 0;
+        var MIN_DIST = 25.0;
         for (var i = st + 1; i < en; i++) {
+          var dist0 = Math.sqrt((hist[i][0] - hist[st][0]) * (hist[i][0] - hist[st][0]) + (hist[i][1] - hist[st][1]) * (hist[i][1] - hist[st][1]));
+          var dist1 = Math.sqrt((hist[en][0] - hist[i][0]) * (hist[en][0] - hist[i][0]) + (hist[en][1] - hist[i][1]) * (hist[en][1] - hist[i][1]));
+          if (dist0 < MIN_DIST || dist1 < MIN_DIST) {
+            continue;
+          }
           var dist = distToSegment(hist[i][0], hist[i][1], hist[st][0], hist[st][1], hist[en][0], hist[en][1]);
           if (maxi == -1 || maxdist < dist) {
             maxi = i;
             maxdist = dist;
           }
+          if (centi == -1 || centdist < dist0 + dist1) {
+            centi = i;
+            centdist = dist0 + dist1;
+          }
         }
 
-        var len = Math.sqrt((hist[en][0] - hist[st][0]) * (hist[en][0] - hist[st][0]) + (hist[en][1] - hist[st][1]) * (hist[en][1] - hist[st][1]));
-        if (maxi > -1 && maxdist > Math.max(len * 0.07, 5)) {
-          used[maxi] = true;
-          checkRange(st, maxi);
-          checkRange(maxi, en);
+        if (maxi > -1 && (maxdist > Math.max(len * 0.1, 4))) {
+          used[maxi] = {it: it, d: Math.round(maxdist * 1000) / 1000.0, len: Math.round(len * 0.15 * 1000) / 1000.0 };
+          checkRange(st, maxi, it + 1);
+          checkRange(maxi, en, it + 1);
+        } else
+        if (centi > -1 && (len > 150)) {
+          used[centi] = {it: -it, d: Math.round(centdist * 1000) / 1000.0, len: Math.round(len * 1000) / 1000.0 };
+          checkRange(st, centi, it + 1);
+          checkRange(centi, en, it + 1);
         }
       }
       // Computes distance from point (x, y) to segment (x1, y1) - (x2, y2)
@@ -326,10 +380,10 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
       }
       used[0] = true;
       used[hist.length - 1] = true;
-      for (var i = 0; i < hist.length; i += 64) {
+      for (var i = 0; i < hist.length; i += 92) {
         used[i] = true;
-        used[Math.min(hist.length - 1, i + 64)] = true;
-        checkRange(i, Math.min(hist.length - 1, i + 64));
+        used[Math.min(hist.length - 1, i + 92)] = true;
+        checkRange(i, Math.min(hist.length - 1, i + 92), 0);
       }
       //checkRange(0, hist.length - 1);
       var filtered = [];
@@ -342,11 +396,11 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
                 (hist[i][1] - hist[0][1]) * (hist[i][1] - hist[0][1]));
 
               filtered.push({
-                x: hist[i][0] * 0.33333 + hist[0][0] * 0.66666 + (Math.random() - 0.5) * len * 0.03,
-                y: hist[i][1] * 0.33333 + hist[0][1] * 0.66666 + (Math.random() - 0.5) * len * 0.03 });
+                x: hist[i][0] * 0.33333 + hist[0][0] * 0.66666 + (Math.random() - 0.5) * len * 0.02,
+                y: hist[i][1] * 0.33333 + hist[0][1] * 0.66666 + (Math.random() - 0.5) * len * 0.02 });
               filtered.push({
-                x: hist[i][0] * 0.66666 + hist[0][0] * 0.33333 + (Math.random() - 0.5) * len * 0.03,
-                y: hist[i][1] * 0.66666 + hist[0][1] * 0.33333 + (Math.random() - 0.5) * len * 0.03 });
+                x: hist[i][0] * 0.66666 + hist[0][0] * 0.33333 + (Math.random() - 0.5) * len * 0.02,
+                y: hist[i][1] * 0.66666 + hist[0][1] * 0.33333 + (Math.random() - 0.5) * len * 0.02 });
             } else
             if (filtered.length == 2) {
               filtered.splice(1, 0, {
@@ -357,15 +411,25 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
                 y: hist[i][1] * 0.5 + filtered[2].y * 0.5 });
             }
           }
-          filtered.push({ x: hist[i][0], y: hist[i][1] });
+          /*if (filtered.length > 0) {
+            var last = filtered[filtered.length - 1];
+            var len =
+              Math.sqrt(
+                  (hist[i][0] - last.x) * (hist[i][0] - last.x) +
+                  (hist[i][1] - last.y) * (hist[i][1] - last.y));
+            var subd = Math.floor(len / 200);
+            var sub = len / subd;
+            for (var j = subd - 1; j >= 0; j--) { // Subdivide segment
+              filtered.push({
+                x: last.x * (j + 1) / (subd + 1) + hist[i][0] * (subd - j) / (subd + 1),
+                y: last.y * (j + 1) / (subd + 1) + hist[i][1] * (subd - j) / (subd + 1) });
+            }
+          }*/
+          filtered.push({ x: hist[i][0], y: hist[i][1], step: used[i] });
         }
       }
 
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#' + color;
-      ctx.fillStyle = '#' + color;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
+      var totallen = 0;
 
       //console.group();
       for (var i = 0; i < filtered.length; i++) {
@@ -374,30 +438,13 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
           (i > 0) ? Math.atan2(filtered[i - 1].y - filtered[i].y, filtered[i - 1].x - filtered[i].x) : 0,
           (i < filtered.length - 1) ? Math.atan2(filtered[i + 1].y - filtered[i].y, filtered[i + 1].x - filtered[i].x) : 0];
         if (i == 0) {
-          filtered[i].alpha[0] = filtered[i].alpha[1];
+          filtered[i].alpha[0] = filtered[i].alpha[1] + (filtered[i].alpha[1] > 0 ? -Math.PI : Math.PI);
         }
         if (i == filtered.length - 1) {
-          filtered[i].alpha[1] = filtered[i].alpha[0];
+          filtered[i].alpha[1] = filtered[i].alpha[0] + (filtered[i].alpha[0] > 0 ? -Math.PI : Math.PI);
         }
-
-        // Length of previous / next segment
-        filtered[i].len = [
-          (i > 0) ? Math.sqrt(
-            (filtered[i].x - filtered[i - 1].x) * (filtered[i].x - filtered[i - 1].x) +
-            (filtered[i].y - filtered[i - 1].y) * (filtered[i].y - filtered[i - 1].y)) : 0,
-          (i < filtered.length - 1) ?
-            Math.sqrt(
-              (filtered[i].x - filtered[i + 1].x) * (filtered[i].x - filtered[i + 1].x) +
-              (filtered[i].y - filtered[i + 1].y) * (filtered[i].y - filtered[i + 1].y)) : 0];
-
-
-        var avg = (filtered[i].alpha[0] + filtered[i].alpha[1]) * 0.5;
         filtered[i].diff = Math.abs(filtered[i].alpha[0] - filtered[i].alpha[1]);
-        filtered[i].w = (i == filtered.length - 1 || i == 0) ? 0 :
-          Math.min(filtered[i].diff * filtered[i].diff * filtered[i].diff * 0.08,
-            filtered[i].len[0] * 0.04,
-            filtered[i].len[1] * 0.04);
-
+        var avg = (filtered[i].alpha[0] + filtered[i].alpha[1]) * 0.5;
         // First normal should be looking outside, second - inside
         if (filtered[i].diff > Math.PI) {
           filtered[i].normal = [avg, avg + (avg < 0 ? Math.PI : -Math.PI)];
@@ -405,6 +452,41 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
         } else {
           filtered[i].normal = [avg + (avg < 0 ? Math.PI : -Math.PI), avg];
         }
+        // Length of previous / next segment
+        filtered[i].len = [
+          (i > 0) ? Math.sqrt(
+            (filtered[i].x - filtered[i - 1].x) * (filtered[i].x - filtered[i - 1].x) +
+            (filtered[i].y - filtered[i - 1].y) * (filtered[i].y - filtered[i - 1].y)) : 15,
+          (i < filtered.length - 1) ?
+            Math.sqrt(
+              (filtered[i].x - filtered[i + 1].x) * (filtered[i].x - filtered[i + 1].x) +
+              (filtered[i].y - filtered[i + 1].y) * (filtered[i].y - filtered[i + 1].y)) : 15];
+        totallen += filtered[i].len[1];
+      }
+      if (filtered.length > 0) {
+        totallen += filtered[0].len[0];
+      }
+      for (var i = 0; i < filtered.length; i++) {
+
+
+        /*filtered[i].w = (i == filtered.length - 1 || i == 0) ? 0 :
+          Math.min(filtered[i].diff * filtered[i].diff * filtered[i].diff * 0.08,
+            filtered[i].len[0] * 0.04,
+            filtered[i].len[1] * 0.04);*/
+        var cnt = 1;
+        filtered[i].avgdiff = filtered[i].diff * 1;
+        for (var j = -2; j <= 2; j++) {
+          if (i + j >= 0 && i + j <= filtered.length - 1) {
+            var w = (j == -2 || j == 2) ? 0.5 : 1;
+            cnt += w;
+            filtered[i].avgdiff += filtered[i + j].diff * w;
+          }
+        }
+        filtered[i].avgdiff /= cnt;
+
+        filtered[i].w = Math.min(1.2, Math.max(0.3, (2.9 - filtered[i].avgdiff) / (2.9 - 2.2)));
+
+        filtered[i].w *= Math.max(2, Math.min(5, totallen * 0.002));
 
         // lnormal is on the left-hand side, rnormal is on the right-hand side (going from previous vertice to the next)
         if ((filtered[i].alpha[0] >= filtered[i].normal[0] && filtered[i].normal[0] >= filtered[i].alpha[1]) ||
@@ -416,27 +498,27 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
           filtered[i].rnormal = filtered[i].normal[0];
         }
 
-        filtered[i].tangent = (i == filtered.length - 1 || i == 0) ?
-          [filtered[i].alpha[0], filtered[i].alpha[0]] : [
+        filtered[i].tangent = [
             filtered[i].lnormal + (filtered[i].lnormal < Math.PI * 1.5 ? (Math.PI * 0.5) : (-Math.PI * 1.5)),
             filtered[i].lnormal + (filtered[i].lnormal > -Math.PI * 1.5 ? (-Math.PI * 0.5) : (Math.PI * 1.5))];
 
-        filtered[i].lx = (i == filtered.length - 1 || i == 0) ? filtered[i].x :
-          (filtered[i].x + Math.cos(filtered[i].lnormal) * filtered[i].w);
-        filtered[i].ly = (i == filtered.length - 1 || i == 0) ? filtered[i].y :
-          (filtered[i].y + Math.sin(filtered[i].lnormal) * filtered[i].w);
-        filtered[i].rx = (i == filtered.length - 1 || i == 0) ? filtered[i].x :
-          (filtered[i].x + Math.cos(filtered[i].rnormal) * filtered[i].w);
-        filtered[i].ry = (i == filtered.length - 1 || i == 0) ? filtered[i].y :
-          (filtered[i].y + Math.sin(filtered[i].rnormal) * filtered[i].w);
+        filtered[i].lx = (filtered[i].x + Math.cos(filtered[i].lnormal) * filtered[i].w);
+        filtered[i].ly = (filtered[i].y + Math.sin(filtered[i].lnormal) * filtered[i].w);
+        filtered[i].rx = (filtered[i].x + Math.cos(filtered[i].rnormal) * filtered[i].w);
+        filtered[i].ry = (filtered[i].y + Math.sin(filtered[i].rnormal) * filtered[i].w);
 
         //console.log(filtered[i]);
-        filtered[i].sharp = (filtered[i].diff < Math.PI * 0.15);
+        filtered[i].sharp = (filtered[i].diff < 0.25);
       }
       //console.groupEnd();
 
-      var CP_DIST = 0.38;
+      var CP_DIST = 0.35;
 
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#' + color;
+      ctx.fillStyle = '#' + color;
+      ctx.beginPath();
+      ctx.moveTo(filtered[0].lx, filtered[0].ly);
       for (var i = 1; i < filtered.length; i++) {
         ctx.bezierCurveTo(
           filtered[i - 1].lx + Math.cos(filtered[i - 1].sharp ? filtered[i - 1].alpha[1] : filtered[i - 1].tangent[1]) * filtered[i - 1].len[1] * CP_DIST,
@@ -445,6 +527,12 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
           filtered[i].ly + Math.sin(filtered[i].sharp ? filtered[i].alpha[0] : filtered[i].tangent[0]) * filtered[i].len[0] * CP_DIST,
           filtered[i].lx, filtered[i].ly);
       }
+      ctx.bezierCurveTo(
+          filtered[filtered.length - 1].lx + Math.cos(filtered[filtered.length - 1].sharp ? filtered[filtered.length - 1].alpha[1] : filtered[filtered.length - 1].tangent[1]) * filtered[filtered.length - 1].len[1] * CP_DIST,
+          filtered[filtered.length - 1].ly + Math.sin(filtered[filtered.length - 1].sharp ? filtered[filtered.length - 1].alpha[1] : filtered[filtered.length - 1].tangent[1]) * filtered[filtered.length - 1].len[1] * CP_DIST,
+          filtered[filtered.length - 1].rx + Math.cos(filtered[filtered.length - 1].sharp ? filtered[filtered.length - 1].alpha[1] : filtered[filtered.length - 1].tangent[1]) * filtered[filtered.length - 1].len[1] * CP_DIST,
+          filtered[filtered.length - 1].ry + Math.sin(filtered[filtered.length - 1].sharp ? filtered[filtered.length - 1].alpha[1] : filtered[filtered.length - 1].tangent[1]) * filtered[filtered.length - 1].len[1] * CP_DIST,
+          filtered[filtered.length - 1].rx, filtered[filtered.length - 1].ry);
       for (var i = filtered.length - 2; i >= 0; i--) {
         ctx.bezierCurveTo(
           filtered[i + 1].rx + Math.cos(filtered[i + 1].sharp ? filtered[i + 1].alpha[0] : filtered[i + 1].tangent[0]) * filtered[i + 1].len[0] * CP_DIST,
@@ -453,10 +541,16 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
           filtered[i].ry + Math.sin(filtered[i].sharp ? filtered[i].alpha[1] : filtered[i].tangent[1]) * filtered[i].len[1] * CP_DIST,
           filtered[i].rx, filtered[i].ry);
       }
+      ctx.bezierCurveTo(
+          filtered[0].rx + Math.cos(filtered[0].sharp ? filtered[0].alpha[0] : filtered[0].tangent[0]) * filtered[0].len[0] * CP_DIST,
+          filtered[0].ry + Math.sin(filtered[0].sharp ? filtered[0].alpha[0] : filtered[0].tangent[0]) * filtered[0].len[0] * CP_DIST,
+          filtered[0].lx + Math.cos(filtered[0].sharp ? filtered[0].alpha[0] : filtered[0].tangent[0]) * filtered[0].len[0] * CP_DIST,
+          filtered[0].ly + Math.sin(filtered[0].sharp ? filtered[0].alpha[0] : filtered[0].tangent[0]) * filtered[0].len[0] * CP_DIST,
+          filtered[0].lx, filtered[0].ly);
       ctx.fill();
-      ctx.stroke();
+      //ctx.stroke();
 
-      /*
+/*
       for (var i = 0; i < hist.length; i++) {
         // Blue: Source points (unfiltered)
         ctx.beginPath();
@@ -469,12 +563,35 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(filtered[i].x, filtered[i].y);
+        ctx.moveTo(filtered[i].lx, filtered[i].ly);
         ctx.lineTo(filtered[i].lx + Math.cos(filtered[i].tangent[0]) * filtered[i].len[0] * CP_DIST, filtered[i].ly + Math.sin(filtered[i].tangent[0]) * filtered[i].len[0] * CP_DIST);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(filtered[i].x, filtered[i].y);
+        ctx.moveTo(filtered[i].lx, filtered[i].ly);
         ctx.lineTo(filtered[i].lx + Math.cos(filtered[i].tangent[1]) * filtered[i].len[1] * CP_DIST, filtered[i].ly + Math.sin(filtered[i].tangent[1]) * filtered[i].len[1] * CP_DIST);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(filtered[i].rx, filtered[i].ry);
+        ctx.lineTo(filtered[i].rx + Math.cos(filtered[i].tangent[0]) * filtered[i].len[0] * CP_DIST, filtered[i].ry + Math.sin(filtered[i].tangent[0]) * filtered[i].len[0] * CP_DIST);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(filtered[i].rx, filtered[i].ry);
+        ctx.lineTo(filtered[i].rx + Math.cos(filtered[i].tangent[1]) * filtered[i].len[1] * CP_DIST, filtered[i].ry + Math.sin(filtered[i].tangent[1]) * filtered[i].len[1] * CP_DIST);
+        ctx.stroke();
+
+        // Brown lines: Normals (outside darker, inside lighter)
+        ctx.strokeStyle = 'rgba(90, 50, 0, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(filtered[i].x, filtered[i].y);
+        ctx.lineTo(filtered[i].x + Math.cos(filtered[i].normal[0]) * 15, filtered[i].y + Math.sin(filtered[i].normal[0]) * 15);
+
+        ctx.strokeStyle = 'rgba(120, 80, 0, 0.6)';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(filtered[i].x, filtered[i].y);
+        ctx.lineTo(filtered[i].x + Math.cos(filtered[i].normal[1]) * 15, filtered[i].y + Math.sin(filtered[i].normal[1]) * 15);
         ctx.stroke();
 
         // Black: Left and right edges of the stroke
@@ -492,8 +609,13 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
         ctx.fillStyle = 'rgba(0, 200, 0, 0.7)';
         ctx.arc(filtered[i].x, filtered[i].y, 1.5, 0, 2 * Math.PI);
         ctx.fill();
+
+        ctx.font = '10px Verdana';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillText('∠ ' + Math.round(filtered[i].diff * 1000.0) / 1000.0 + ' (avg ' + Math.round(filtered[i].avgdiff * 1000.0) / 1000.0 + ')', filtered[i].x + 2, filtered[i].y);
+        //ctx.fillText('#' + (filtered[i].step === undefined ? 'AUX' : (filtered[i].step === true ? 'CP' : (filtered[i].step.it + ' (D=' + filtered[i].step.d + ', len=' + filtered[i].step.len + ')'))), filtered[i].x + 2, filtered[i].y + 9);
       }
-      */
+*/
     } else
     if (parts[0] == 'arrow') {
       var len = Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
@@ -518,7 +640,7 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
         ctx.fill();
         ctx.stroke();
 
-        var arrlen = Math.min(len * 0.6, Math.max(18, Math.min(48, len * 0.2)));
+        var arrlen = Math.min(len * 0.6, Math.max(30, Math.min(52, len * 0.2)));
 
         function quadratic(p0, p1, p2, t) {
           return (1 - t) * ((1 - t) * p0 + t * p1) + t * ((1 - t) * p1 + t * p2);
@@ -545,19 +667,19 @@ function updateRegion(act, x0, y0, x1, y1, mouse) {
         ctx.stroke();
       }
 
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = (parts[1] == 'yellow') ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.4)';
-      ctx.fillStyle = (parts[1] == 'yellow') ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = (parts[1] == 'yellow') ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.4)';
+      ctx.fillStyle = (parts[1] == 'yellow') ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.4)';
       arrow(x0, y0, x1, y1);
 
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.strokeStyle = '#' + color;
       ctx.fillStyle = '#' + color;
       arrow(x0, y0, x1, y1);
     }
   } else
   if (drag == 'crop') {
-    updateCrop(x0, y0, Math.max(x1 - x0, 1), Math.max(y1 - y0, 1));
+    updateCrop(Math.min(x0, x1), Math.min(y0, y1), Math.max(Math.abs(x1 - x0), 1), Math.max(Math.abs(y1 - y0), 1));
   } else {
     return false;
   }
@@ -916,8 +1038,9 @@ root.onmouseup = function(e) {
   ctx = tcanvas.getContext('2d');
   ctx.clearRect(0, 0, tcanvas.width, tcanvas.height);
   if (drag == 'focus') {
-    scale = devicePixelRatio * 0.5;
+    scale = devicePixelRatio * 0.75;
     updateScale();
+    screenshot.style.webkitFilter = 'brightness(88%)';
   }
 
   controls.style.display = 'block';
@@ -950,6 +1073,9 @@ actions.onmousedown = function(e) {
 ge('action_clear').onclick = function(e) {
   var ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  scale = devicePixelRatio;
+  updateScale();
+  screenshot.style.webkitFilter = 'none';
   e.stopPropagation();
   return false;
 }
@@ -984,11 +1110,24 @@ setAction('crop');
 
 function send(msg, extra) {
   var c = document.createElement('canvas');
-  c.width = wrap.clientWidth * devicePixelRatio;
-  c.height = wrap.clientHeight * devicePixelRatio;
+  c.width = wrap.clientWidth * scale;
+  c.height = wrap.clientHeight * scale;
   var ctx = c.getContext('2d');
-  ctx.drawImage(screenshot, - shadowL.clientWidth * devicePixelRatio, - shadowT.clientHeight * devicePixelRatio);
-  ctx.drawImage(canvas, - shadowL.clientWidth * devicePixelRatio, - shadowT.clientHeight * devicePixelRatio);
+  ctx.webkitImageSmoothingEnabled = true;
+  ctx.drawImage(screenshot,
+    shadowL.clientWidth, shadowT.clientHeight,
+    wrap.clientWidth, wrap.clientHeight,
+    0, 0, c.width, c.height);
+  if (screenshot.style.webkitFilter && screenshot.style.webkitFilter != 'none') {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+    ctx.rect(0, 0, c.width, c.height);
+    ctx.fill();
+  }
+  ctx.webkitImageSmoothingEnabled = true; // false;
+  ctx.drawImage(canvas,
+    shadowL.clientWidth, shadowT.clientHeight,
+    wrap.clientWidth, wrap.clientHeight,
+    0, 0, c.width, c.height);
 
   var message = {
     message: msg,
@@ -999,8 +1138,8 @@ function send(msg, extra) {
       message[i] = extra[i];
     }
   }
-  dismiss();
   chrome.runtime.sendMessage(message);
+  dismiss();
 }
 
 function ge(e) { return document.getElementById(e); }

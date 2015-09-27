@@ -291,6 +291,7 @@ function uploadImage(group, album, src) {
 }
 
 var currentScreenshot;
+var currentCopiedScreenshot;
 var currentTabs;
 function capture(info, tab) {
   chrome.tabs.captureVisibleTab({
@@ -354,9 +355,32 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     var date = new Date();
     saveAs(canvasToBlob(request.screenshot).blob, 'screenshot-' + date.getDate() + month[date.getMonth()] + date.getFullYear() + '-' + pad(date.getHours(), 2) + '.' + pad(date.getMinutes(), 2) + '.' + pad(date.getSeconds(), 2) + '.png');
   } else
+  if (request.message == 'captureCopy') {
+    var div = document.createElement('div');
+    document.body.appendChild(div);
+    div.contentEditable = true;
+    var img = document.createElement('img');
+    div.appendChild(img);
+    img.onload = function() {
+      var range = document.createRange();
+      range.selectNode(img);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      img.focus();
+      document.execCommand('copy');
+      document.body.removeChild(div);
+    }
+    currentCopiedScreenshot = canvasToBlob(request.screenshot).blob;
+    img.src = request.screenshot;
+  } else
   if (request.message == 'captureTab') {
     attachInTab([canvasToBlob(request.screenshot).url], request.tab, request.wall, request.target);
   }
+});
+
+document.addEventListener('copy', function(e) {
+  //e.clipboardData.items.add(new File([currentCopiedScreenshot], 'screenshot.png'));
+  e.clipboardData.setData('image/png', currentCopiedScreenshot);
 });
 
 chrome.runtime.onInstalled.addListener(function(reason) {
