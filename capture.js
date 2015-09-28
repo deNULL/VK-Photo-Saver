@@ -1115,8 +1115,8 @@ function send(msg, extra) {
   var ctx = c.getContext('2d');
   ctx.webkitImageSmoothingEnabled = true;
   ctx.drawImage(screenshot,
-    shadowL.clientWidth, shadowT.clientHeight,
-    wrap.clientWidth, wrap.clientHeight,
+    shadowL.clientWidth * devicePixelRatio, shadowT.clientHeight * devicePixelRatio,
+    wrap.clientWidth * devicePixelRatio, wrap.clientHeight * devicePixelRatio,
     0, 0, c.width, c.height);
   if (screenshot.style.webkitFilter && screenshot.style.webkitFilter != 'none') {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
@@ -1125,8 +1125,8 @@ function send(msg, extra) {
   }
   ctx.webkitImageSmoothingEnabled = true; // false;
   ctx.drawImage(canvas,
-    shadowL.clientWidth, shadowT.clientHeight,
-    wrap.clientWidth, wrap.clientHeight,
+    shadowL.clientWidth * devicePixelRatio, shadowT.clientHeight * devicePixelRatio,
+    wrap.clientWidth * devicePixelRatio, wrap.clientHeight * devicePixelRatio,
     0, 0, c.width, c.height);
 
   var message = {
