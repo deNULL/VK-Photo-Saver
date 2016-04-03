@@ -57,7 +57,7 @@ function refreshMenuItem(item, parentId) {
 var tabsInMenu = [];
 function getSuitableTabs(callback) {
   chrome.tabs.query({
-    url: '*://vk.com/*',
+    url: '*://*.vk.com/*',
     windowType: 'normal'
   }, function(tabs) {
     var checked = {};

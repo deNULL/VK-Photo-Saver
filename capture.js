@@ -5,7 +5,7 @@ var hint = ge('hint');
 var actions = ge('actions');
 var canvas = ge('canvas');
 var tcanvas = ge('tcanvas');
-var scale = devicePixelRatio;
+var scale = Math.max(1, devicePixelRatio);
 
 function dismiss() {
   window.top.postMessage('dismissPhotoSaver', '*');
