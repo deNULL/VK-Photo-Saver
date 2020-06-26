@@ -186,6 +186,7 @@ function upload(group, album, blob, url, src) {
 
   var formData = new FormData();
   formData.append('file1', blob, 'file.jpg');
+  const imageUrl = URL.createObjectURL(blob);
   var xhr = new XMLHttpRequest();
   xhr.upload.onprogress = function(pe) {
     if (pe.lengthComputable) {
@@ -210,37 +211,45 @@ function upload(group, album, blob, url, src) {
       params.photos_list = res.photos_list;
       params.hash = res.hash;
 
+      chrome.notifications.clear('upload' + uploadNum);
       api('photos.save', params, function(data) {
         console.log('saved', data);
 
         if (data.response) {
           var photo = data.response[0];
+          let maxSize;
+          for (let size of photo.sizes) {
+            if (!maxSize || (maxSize.width < size.width)) {
+              maxSize = size;
+            }
+          }
 
           var copied = '';
           if (opts.afterUpload == 'src') {
-            copyToClipboard(photo.photo_2560 || photo.photo_1280 || photo.photo_807 || photo.photo_604 || photo.photo_130 || photo.photo_75);
-            copied = '\n\nСсылка на изображение скопирована в буфер обмена.';
+            copyToClipboard(maxSize.url);
+            copied = 'Ссылка на изображение скопирована в буфер обмена.';
           } else
           if (opts.afterUpload == 'page') {
             copyToClipboard('http://vk.com/photo' + photo.owner_id + '_' + photo.id);
-            copied = '\n\nСсылка на страницу фотографии скопирована в буфер обмена.';
+            copied = 'Ссылка на страницу фотографии скопирована в буфер обмена.';
           }
 
-          chrome.notifications.update('upload' + uploadNum, {
-            type: 'image',
+          chrome.notifications.create('upload' + uploadNum + '-complete', {
+            type: 'basic',
             iconUrl: 'icon-48.png',
             title: 'Загрузка изображения',
-            message: 'Изображение успешно загружено в альбом «' + album.title + '».' + copied,
-            imageUrl: URL.createObjectURL(blob),
+            message: 'Изображение успешно загружено в альбом «' + album.title + '».',
+            contextMessage: copied,
+            //imageUrl,
             buttons: [{ title: 'Открыть страницу фотографии'}, { title: 'Открыть изображение' }]
           }, function() {});
 
           var clickNotification = function(notificationId, buttonId) {
-            if (notificationId == 'upload' + uploadNum) {
+            if (notificationId == 'upload' + uploadNum + '-complete') {
               if (buttonId == 0) {
                 window.open('http://vk.com/photo' + photo.owner_id + '_' + photo.id);
               } else {
-                window.open(photo.photo_2560 || photo.photo_1280 || photo.photo_807 || photo.photo_604 || photo.photo_130 || photo.photo_75);
+                window.open(maxSize.url);
               }
               chrome.notifications.clear('upload' + uploadNum, function() {});
             }
@@ -298,7 +307,7 @@ function canvasToBlob(canvas) {
 }
 
 function api(method, params, callback) {
-  var arr = ['v=5.7', 'access_token=' + opts.accessToken];
+  var arr = ['v=5.110', 'access_token=' + opts.accessToken];
   for (var k in params) {
     arr.push(k + '=' + escape(params[k]));
   }
