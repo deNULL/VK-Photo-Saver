@@ -181,8 +181,8 @@ function performAuth() {
   chrome.windows.getCurrent(function(wnd) {
     chrome.tabs.getCurrent(function(tab) {
       chrome.windows.create({
-        url: 'https://oauth.vk.com/authorize?client_id=4139773&scope=photos,groups,offline&redirect_uri=' + redirect_uri + '&display=popup&v=5.7&response_type=token',
-        tabId: tab.id,
+        url: 'https://oauth.vk.com/authorize?client_id=4139773&scope=photos,groups,offline&redirect_uri=' + redirect_uri + '&display=popup&v=5.110&response_type=token',
+        //tabId: tab.id,
         focused: true,
         type: 'popup',
         left: wnd.left + (wnd.width - 700) >> 1,

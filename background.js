@@ -84,7 +84,7 @@ function getSuitableTabs(callback) {
                   wall: res.wall,
                   type: res.type,
                   title: res.title,
-                  target: res.target,
+                  target: res.target
                 });
               } /* else { // For debug purposes
                 tabsInMenu.push(tabs[j].id);
@@ -107,6 +107,10 @@ function getSuitableTabs(callback) {
         }, 200);
         chrome.tabs.executeScript(tab.id, {
           code: '\
+            if (document.getElementsByClassName("im-page_history-show").length &&\
+                document.getElementsByClassName("ui_rmenu_item_sel").length) {\
+              ({ wall: false, title: document.getElementsByClassName("ui_rmenu_item_sel")[0].innerText.trim(), target: "im-page" });\
+            } else\
             if (document.getElementById("im_texts")) {\
               ({ wall: false, title: document.getElementById("im_tabs").getElementsByClassName("im_tab_selected")[0].innerText.trim(), target: "im_write_form" });\
             } else\
@@ -385,7 +389,11 @@ document.addEventListener('copy', function(e) {
 
 chrome.runtime.onInstalled.addListener(function(reason) {
   if (reason == 'installed') {
-    chrome.tabs.create({ url: 'options.html' });
+    if (chrome.runtime.openOptionsPage) {
+      chrome.runtime.openOptionsPage();
+    } else {
+      chrome.tabs.create({ url: 'options.html' });
+    }
   }
 });
 

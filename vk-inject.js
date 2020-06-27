@@ -36,7 +36,7 @@
           for (var j in cur.addMedia) {
             var el = ge(cur.addMedia[j]._addMediaLink);
             while (el) {
-              if (el.id == event.data.target) {
+              if ((event.data.target == el.id) || (el.classList && el.classList.contains(event.data.target))) {
                 id = j;
                 break;
               }
@@ -49,7 +49,7 @@
             if (j > id) id = j;
           }
         }
-        if (j == -1) {
+        if (id == -1) {
           console.log('VK Photo Saver', 'addMedia target is not found (were looking for ' + event.data.target + ')! Aborting.');
           return;
         }
